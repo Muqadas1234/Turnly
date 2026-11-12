@@ -1,0 +1,40 @@
+name: turnly
+description: Turnly - Hospital Token & Queue Management App
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Firebase (SIRF FCM ke liye)
+  firebase_core: ^3.6.0
+  firebase_messaging: ^15.1.3
+
+  # API calls
+  http: ^1.2.0
+
+  # Local storage (JWT token save)
+  shared_preferences: ^2.3.0
+
+  # State management, DI and routing
+  get: ^4.6.6
+
+  # UI / utils
+  flutter_local_notifications: ^17.2.3
+  google_fonts: ^6.2.1
+  intl: ^0.19.0
+  cached_network_image: ^3.4.1
+  shimmer: ^3.0.0
+  pin_code_fields: ^8.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
