@@ -1,17 +1,9 @@
 import 'dart:convert';
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'api_endpoints.dart';
 
 class ApiService {
-  // Emulator uses 10.0.2.2, physical devices/web use localhost
-  static String get baseUrl {
-    if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000/api';
-    }
-    return 'http://localhost:3000/api';
-  }
-
   // Token storage helpers
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
@@ -55,6 +47,8 @@ class ApiService {
     return {'Content-Type': 'application/json'};
   }
 
+  // ================= AUTH ENDPOINTS =================
+
   // Signup request
   static Future<Map<String, dynamic>> signup({
     required String name,
@@ -64,7 +58,7 @@ class ApiService {
     String? fcmToken,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/signup'),
+      Uri.parse(ApiEndpoints.signupUrl),
       headers: _jsonHeaders(),
       body: jsonEncode({
         'name': name,
@@ -83,7 +77,7 @@ class ApiService {
     required String otpCode,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/verify-otp'),
+      Uri.parse(ApiEndpoints.verifyOtpUrl),
       headers: _jsonHeaders(),
       body: jsonEncode({
         'email': email,
@@ -98,7 +92,7 @@ class ApiService {
     required String email,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/resend-otp'),
+      Uri.parse(ApiEndpoints.resendOtpUrl),
       headers: _jsonHeaders(),
       body: jsonEncode({'email': email}),
     );
@@ -112,7 +106,7 @@ class ApiService {
     String? fcmToken,
   }) async {
     final response = await http.post(
-      Uri.parse('$baseUrl/auth/login'),
+      Uri.parse(ApiEndpoints.loginUrl),
       headers: _jsonHeaders(),
       body: jsonEncode({
         'email': email,
@@ -127,7 +121,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getProfile() async {
     final headers = await _authHeaders();
     final response = await http.get(
-      Uri.parse('$baseUrl/auth/profile'),
+      Uri.parse(ApiEndpoints.profileUrl),
       headers: headers,
     );
     return _decode(response);
@@ -139,7 +133,7 @@ class ApiService {
   }) async {
     final headers = await _authHeaders();
     final response = await http.put(
-      Uri.parse('$baseUrl/auth/profile'),
+      Uri.parse(ApiEndpoints.profileUrl),
       headers: headers,
       body: jsonEncode({
         if (name != null) 'name': name,
@@ -153,7 +147,7 @@ class ApiService {
   // Fetch hospital registrations with status filter ('pending', 'approved', 'suspended')
   static Future<Map<String, dynamic>> getAdminHospitals({String? status}) async {
     final headers = await _authHeaders();
-    String url = '$baseUrl/admin/hospitals';
+    String url = ApiEndpoints.adminHospitals;
     if (status != null && status.isNotEmpty) {
       url += '?status=$status';
     }
@@ -169,7 +163,7 @@ class ApiService {
   static Future<Map<String, dynamic>> approveHospital(int hospitalId) async {
     final headers = await _authHeaders();
     final response = await http.put(
-      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/approve'),
+      Uri.parse(ApiEndpoints.adminApproveHospital(hospitalId)),
       headers: headers,
     );
     return _decode(response);
@@ -179,7 +173,7 @@ class ApiService {
   static Future<Map<String, dynamic>> rejectHospital(int hospitalId, {String? rejectionNote}) async {
     final headers = await _authHeaders();
     final response = await http.put(
-      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/reject'),
+      Uri.parse(ApiEndpoints.adminRejectHospital(hospitalId)),
       headers: headers,
       body: jsonEncode({'rejectionNote': rejectionNote}),
     );
@@ -190,7 +184,7 @@ class ApiService {
   static Future<Map<String, dynamic>> suspendHospital(int hospitalId) async {
     final headers = await _authHeaders();
     final response = await http.put(
-      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/suspend'),
+      Uri.parse(ApiEndpoints.adminSuspendHospital(hospitalId)),
       headers: headers,
     );
     return _decode(response);
@@ -200,7 +194,7 @@ class ApiService {
   static Future<Map<String, dynamic>> getPlatformStats() async {
     final headers = await _authHeaders();
     final response = await http.get(
-      Uri.parse('$baseUrl/admin/stats'),
+      Uri.parse(ApiEndpoints.adminStats),
       headers: headers,
     );
     return _decode(response);
