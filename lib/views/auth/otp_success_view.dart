@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../utils/routes.dart';
+import '../../widgets/custom_button.dart';
 
 class OtpSuccessView extends StatefulWidget {
   const OtpSuccessView({super.key});
@@ -48,10 +49,6 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
     super.dispose();
   }
 
-  void _navigateToLogin() {
-    Get.offAllNamed(AppRoutes.login);
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -61,8 +58,6 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
           child: Column(
             children: [
               const Spacer(flex: 2),
-
-              // Success checkmark
               ScaleTransition(
                 scale: _scaleAnim,
                 child: Container(
@@ -79,9 +74,7 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
                   ),
                 ),
               ),
-
               const SizedBox(height: 32),
-
               const Text(
                 'Account verified!',
                 style: TextStyle(
@@ -91,7 +84,6 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
                 ),
               ),
               const SizedBox(height: 12),
-
               Text(
                 _userName.isNotEmpty
                     ? 'Great, $_userName! Your account is verified.\nPlease log in to access your dashboard.'
@@ -103,30 +95,13 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
                   height: 1.5,
                 ),
               ),
-
               const Spacer(flex: 3),
 
-              // Continue to Login Button
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _navigateToLogin,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    elevation: 0,
-                  ),
-                  child: const Text(
-                    'Go to Log in',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                  ),
-                ),
+              // reusable custom button
+              CustomButton(
+                label: 'Go to Log in',
+                onPressed: () => Get.offAllNamed(AppRoutes.login),
               ),
-
               const SizedBox(height: 32),
             ],
           ),

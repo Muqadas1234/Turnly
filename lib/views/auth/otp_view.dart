@@ -6,6 +6,7 @@ import 'package:pin_code_fields/pin_code_fields.dart';
 
 import '../../utils/app_colors.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/custom_button.dart';
 
 class OtpView extends StatefulWidget {
   const OtpView({super.key});
@@ -51,6 +52,17 @@ class _OtpViewState extends State<OtpView> {
     super.dispose();
   }
 
+  void _submit() {
+    final code = _otpController.text.trim();
+    if (code.length == 6) {
+      Get.find<AuthViewModel>().verifyOtp(email: _email, otpCode: code);
+    } else {
+      Get.snackbar('Error', 'Please enter the 6-digit code',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final authVm = Get.find<AuthViewModel>();
@@ -63,8 +75,6 @@ class _OtpViewState extends State<OtpView> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 16),
-
-              // Back button
               IconButton(
                 onPressed: () => Get.back(),
                 icon: const Icon(Icons.arrow_back_rounded),
@@ -72,9 +82,7 @@ class _OtpViewState extends State<OtpView> {
                   backgroundColor: Colors.grey.shade100,
                 ),
               ),
-
               const SizedBox(height: 32),
-
               const Text(
                 'Verify email',
                 style: TextStyle(
@@ -84,7 +92,6 @@ class _OtpViewState extends State<OtpView> {
                 ),
               ),
               const SizedBox(height: 8),
-
               RichText(
                 text: TextSpan(
                   style: const TextStyle(fontSize: 14, color: AppColors.textSecondary, height: 1.5),
@@ -100,10 +107,7 @@ class _OtpViewState extends State<OtpView> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 40),
-
-              // OTP Input
               const Text(
                 'Enter the 6-digit code',
                 style: TextStyle(
@@ -113,7 +117,6 @@ class _OtpViewState extends State<OtpView> {
                 ),
               ),
               const SizedBox(height: 16),
-
               PinCodeTextField(
                 appContext: context,
                 length: 6,
@@ -139,15 +142,11 @@ class _OtpViewState extends State<OtpView> {
                   color: AppColors.textPrimary,
                 ),
                 onCompleted: (code) {
-                  // Auto-verify on complete
                   authVm.verifyOtp(email: _email, otpCode: code);
                 },
                 onChanged: (_) {},
               ),
-
               const SizedBox(height: 20),
-
-              // Resend row
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -182,58 +181,21 @@ class _OtpViewState extends State<OtpView> {
                     ),
                 ],
               ),
-
               const SizedBox(height: 12),
-              Center(
+              const Center(
                 child: Text(
                   'OTP can take up to a minute.',
                   style: TextStyle(fontSize: 12, color: AppColors.textHint),
                 ),
               ),
-
               const SizedBox(height: 36),
 
-              // Verify Button
-              Obx(() => SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: authVm.isLoading.value
-                          ? null
-                          : () {
-                              final code = _otpController.text.trim();
-                              if (code.length == 6) {
-                                authVm.verifyOtp(email: _email, otpCode: code);
-                              } else {
-                                Get.snackbar('Error', 'Please enter the 6-digit code',
-                                    backgroundColor: Colors.red.shade50,
-                                    colorText: Colors.red.shade800);
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: authVm.isLoading.value
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.5,
-                                color: Colors.white,
-                              ),
-                            )
-                          : const Text(
-                              'Verify',
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                            ),
-                    ),
-                  )),
-
+              // reusable custom button
+              Obx(() => CustomButton(
+                label: 'Verify',
+                isLoading: authVm.isLoading.value,
+                onPressed: _submit,
+              )),
               const SizedBox(height: 24),
             ],
           ),
