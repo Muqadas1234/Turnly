@@ -35,6 +35,7 @@ class AdminPanelView extends StatelessWidget {
           vm.selectedTab.value = index;
           if (index == 0) vm.fetchHospitals();
           if (index == 1) vm.fetchStats();
+          if (index == 2) vm.fetchApprovedHospitals();
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: const Color(0xFF0D6E6E),
@@ -487,9 +488,7 @@ class AdminPanelView extends StatelessWidget {
             const SizedBox(height: 16),
             Expanded(
               child: Obx(() {
-                final approvedList = vm.hospitals
-                    .where((h) => h['status'] == 'approved')
-                    .toList();
+                final approvedList = vm.approvedHospitals;
 
                 if (approvedList.isEmpty) {
                   return const Center(child: Text('No approved hospitals yet'));

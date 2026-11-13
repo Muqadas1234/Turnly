@@ -14,8 +14,11 @@ class AdminViewModel extends GetxController {
   final approvedCount = 0.obs;
   final suspendedCount = 0.obs;
 
-  // Hospitals list
+  // Filtered hospitals list for Approvals tab
   final hospitals = <Map<String, dynamic>>[].obs;
+
+  // Dedicated list of all approved active hospitals
+  final approvedHospitals = <Map<String, dynamic>>[].obs;
 
   // Platform statistics
   final platformStats = <String, dynamic>{}.obs;
@@ -24,10 +27,11 @@ class AdminViewModel extends GetxController {
   void onInit() {
     super.onInit();
     fetchHospitals();
+    fetchApprovedHospitals();
     fetchStats();
   }
 
-  // Fetch hospitals filtered by selected status
+  // Fetch hospitals filtered by selected status for Approvals tab
   Future<void> fetchHospitals({String? status}) async {
     isLoading.value = true;
     final filter = status ?? selectedFilter.value;
@@ -58,13 +62,26 @@ class AdminViewModel extends GetxController {
     }
   }
 
-  // Change filter chip
+  // Fetch all approved hospitals for Manage Hospitals tab and Stats preview
+  Future<void> fetchApprovedHospitals() async {
+    try {
+      final response = await ApiService.getAdminHospitals(status: 'approved');
+      if (response['success'] == true) {
+        final list = (response['data'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        approvedHospitals.assignAll(list);
+      }
+    } catch (_) {}
+  }
+
+  // Change filter chip in Approvals tab
   void setFilter(String status) {
     selectedFilter.value = status;
     fetchHospitals(status: status);
   }
 
-  // Approve hospital
+  // Approve a hospital
   Future<void> approveHospital(int hospitalId) async {
     try {
       final response = await ApiService.approveHospital(hospitalId);
@@ -76,13 +93,15 @@ class AdminViewModel extends GetxController {
           colorText: Colors.green.shade800,
         );
         fetchHospitals();
+        fetchApprovedHospitals();
+        fetchStats();
       }
     } catch (_) {
       Get.snackbar('Error', 'Failed to approve hospital');
     }
   }
 
-  // Reject hospital
+  // Reject a hospital
   Future<void> rejectHospital(int hospitalId, {String? reason}) async {
     try {
       final response = await ApiService.rejectHospital(hospitalId, rejectionNote: reason);
@@ -94,13 +113,15 @@ class AdminViewModel extends GetxController {
           colorText: Colors.orange.shade800,
         );
         fetchHospitals();
+        fetchApprovedHospitals();
+        fetchStats();
       }
     } catch (_) {
       Get.snackbar('Error', 'Failed to reject hospital');
     }
   }
 
-  // Suspend hospital
+  // Suspend an approved hospital
   Future<void> suspendHospital(int hospitalId) async {
     try {
       final response = await ApiService.suspendHospital(hospitalId);
@@ -112,13 +133,15 @@ class AdminViewModel extends GetxController {
           colorText: Colors.red.shade800,
         );
         fetchHospitals();
+        fetchApprovedHospitals();
+        fetchStats();
       }
     } catch (_) {
       Get.snackbar('Error', 'Failed to suspend hospital');
     }
   }
 
-  // Fetch platform stats
+  // Fetch platform statistics
   Future<void> fetchStats() async {
     try {
       final response = await ApiService.getPlatformStats();
