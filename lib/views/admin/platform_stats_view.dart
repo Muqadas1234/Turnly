@@ -54,64 +54,68 @@ class PlatformStatsView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // 2x2 Metrics Cards Grid
-              Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.local_hospital_outlined,
-                          iconColor: const Color(0xFF0D6E6E),
-                          iconBg: const Color(0xFFE0F2F1),
-                          badgeText: '+3',
-                          badgeColor: const Color(0xFFD1FAE5),
-                          badgeTextColor: const Color(0xFF059669),
-                          value: '24',
-                          label: 'Total hospitals',
+              // 2x2 Real Live Database Metrics Grid
+              Obx(() {
+                final stats = vm.platformStats;
+                final totalHospitals = stats['totalHospitals'] ?? vm.approvedCount.value;
+                final activeQueues = stats['activeQueues'] ?? 0;
+                final tokensToday = stats['tokensToday'] ?? 0;
+                final totalPatients = stats['totalPatients'] ?? 0;
+
+                return Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            icon: Icons.local_hospital_outlined,
+                            iconColor: const Color(0xFF0D6E6E),
+                            iconBg: const Color(0xFFE0F2F1),
+                            value: '$totalHospitals',
+                            label: 'Total hospitals',
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.show_chart,
-                          iconColor: const Color(0xFF2563EB),
-                          iconBg: const Color(0xFFDBEAFE),
-                          value: '17',
-                          label: 'Active queues',
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _buildMetricCard(
+                            icon: Icons.show_chart,
+                            iconColor: const Color(0xFF2563EB),
+                            iconBg: const Color(0xFFDBEAFE),
+                            value: '$activeQueues',
+                            label: 'Active queues',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.confirmation_number_outlined,
-                          iconColor: const Color(0xFFD97706),
-                          iconBg: const Color(0xFFFEF3C7),
-                          badgeText: '+12%',
-                          badgeColor: const Color(0xFFD1FAE5),
-                          badgeTextColor: const Color(0xFF059669),
-                          value: '1,248',
-                          label: 'Tokens today',
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildMetricCard(
+                            icon: Icons.confirmation_number_outlined,
+                            iconColor: const Color(0xFFD97706),
+                            iconBg: const Color(0xFFFEF3C7),
+                            value: '$tokensToday',
+                            label: 'Tokens today',
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: _buildMetricCard(
-                          icon: Icons.people_outline,
-                          iconColor: const Color(0xFF7C3AED),
-                          iconBg: const Color(0xFFEDE9FE),
-                          value: '9.4k',
-                          label: 'Patients',
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: _buildMetricCard(
+                            icon: Icons.people_outline,
+                            iconColor: const Color(0xFF7C3AED),
+                            iconBg: const Color(0xFFEDE9FE),
+                            value: totalPatients >= 1000
+                                ? '${(totalPatients / 1000).toStringAsFixed(1)}k'
+                                : '$totalPatients',
+                            label: 'Patients',
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                      ],
+                    ),
+                  ],
+                );
+              }),
               const SizedBox(height: 24),
 
               // Section: Tokens issued per hospital (Visual Mockup Chart)
@@ -318,9 +322,6 @@ class PlatformStatsView extends StatelessWidget {
     required IconData icon,
     required Color iconColor,
     required Color iconBg,
-    String? badgeText,
-    Color? badgeColor,
-    Color? badgeTextColor,
     required String value,
     required String label,
   }) {
@@ -334,34 +335,13 @@ class PlatformStatsView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconBg,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: iconColor, size: 20),
-              ),
-              if (badgeText != null)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Text(
-                    badgeText,
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      color: badgeTextColor,
-                    ),
-                  ),
-                ),
-            ],
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconBg,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(height: 16),
           Text(
