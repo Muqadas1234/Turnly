@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // emulator uses 10.0.2.2, physical devices use local IP
+  // Emulator uses 10.0.2.2, physical devices/web use localhost
   static String get baseUrl {
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3000/api';
@@ -12,7 +12,7 @@ class ApiService {
     return 'http://localhost:3000/api';
   }
 
-  // token storage helpers
+  // Token storage helpers
   static Future<void> saveToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
@@ -23,7 +23,7 @@ class ApiService {
     return prefs.getString('jwt_token');
   }
 
-  // user session cache
+  // User session cache
   static Future<void> saveUserData(Map<String, dynamic> user) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_data', jsonEncode(user));
@@ -36,13 +36,13 @@ class ApiService {
     return null;
   }
 
-  // clear stored credentials
+  // Clear stored credentials
   static Future<void> clearAll() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.clear();
   }
 
-  // headers builder
+  // Headers builder
   static Future<Map<String, String>> _authHeaders() async {
     final token = await getToken();
     return {
@@ -55,7 +55,7 @@ class ApiService {
     return {'Content-Type': 'application/json'};
   }
 
-  // signup request
+  // Signup request
   static Future<Map<String, dynamic>> signup({
     required String name,
     required String email,
@@ -77,7 +77,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // verify otp code
+  // Verify OTP code
   static Future<Map<String, dynamic>> verifyOtp({
     required String email,
     required String otpCode,
@@ -93,7 +93,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // request new otp code
+  // Request new OTP code
   static Future<Map<String, dynamic>> resendOtp({
     required String email,
   }) async {
@@ -105,7 +105,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // login request
+  // Login request
   static Future<Map<String, dynamic>> login({
     required String email,
     required String password,
@@ -123,7 +123,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // fetch current user profile
+  // Fetch current user profile
   static Future<Map<String, dynamic>> getProfile() async {
     final headers = await _authHeaders();
     final response = await http.get(
@@ -133,7 +133,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // update profile details
+  // Update profile details
   static Future<Map<String, dynamic>> updateProfile({
     String? name,
   }) async {
@@ -148,7 +148,65 @@ class ApiService {
     return _decode(response);
   }
 
-  // parse response safely
+  // ================= ADMIN ENDPOINTS =================
+
+  // Fetch hospital registrations with status filter ('pending', 'approved', 'suspended')
+  static Future<Map<String, dynamic>> getAdminHospitals({String? status}) async {
+    final headers = await _authHeaders();
+    String url = '$baseUrl/admin/hospitals';
+    if (status != null && status.isNotEmpty) {
+      url += '?status=$status';
+    }
+
+    final response = await http.get(
+      Uri.parse(url),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  // Approve a hospital registration
+  static Future<Map<String, dynamic>> approveHospital(int hospitalId) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/approve'),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  // Reject a hospital registration with an optional rejection note
+  static Future<Map<String, dynamic>> rejectHospital(int hospitalId, {String? rejectionNote}) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/reject'),
+      headers: headers,
+      body: jsonEncode({'rejectionNote': rejectionNote}),
+    );
+    return _decode(response);
+  }
+
+  // Suspend an approved hospital
+  static Future<Map<String, dynamic>> suspendHospital(int hospitalId) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse('$baseUrl/admin/hospitals/$hospitalId/suspend'),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  // Fetch overall platform statistics
+  static Future<Map<String, dynamic>> getPlatformStats() async {
+    final headers = await _authHeaders();
+    final response = await http.get(
+      Uri.parse('$baseUrl/admin/stats'),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  // Safe JSON response parser
   static Map<String, dynamic> _decode(http.Response response) {
     try {
       final data = jsonDecode(response.body);
