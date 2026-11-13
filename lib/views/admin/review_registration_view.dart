@@ -44,9 +44,9 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         : name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
           icon: const AppIcon('arrow_left', size: 20, color: AppColors.textPrimary),
@@ -70,7 +70,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
@@ -78,13 +78,13 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 children: [
                   CircleAvatar(
                     radius: 26,
-                    backgroundColor: const Color(0xFFE0F2F1),
+                    backgroundColor: AppColors.adminPrimaryLight,
                     child: Text(
                       initials,
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF00695C),
+                        color: AppColors.adminPrimaryDark,
                       ),
                     ),
                   ),
@@ -105,7 +105,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFFEF3C7),
+                            color: AppColors.adminPendingBg,
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Text(
@@ -113,7 +113,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: Color(0xFFD97706),
+                              color: AppColors.adminPendingText,
                             ),
                           ),
                         ),
@@ -129,7 +129,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: AppColors.card,
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: AppColors.border),
               ),
@@ -174,7 +174,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                   hintText: 'Add a reason if rejecting...',
                   hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
                   filled: true,
-                  fillColor: Colors.white,
+                  fillColor: AppColors.surface,
                   contentPadding: const EdgeInsets.all(14),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -186,7 +186,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: const BorderSide(color: Color(0xFF0D6E6E), width: 1.5),
+                    borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
                   ),
                 ),
               ),
@@ -202,8 +202,8 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                     Get.back();
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0D6E6E),
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: AppColors.surface,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -228,7 +228,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                     Get.back();
                   },
                   style: TextButton.styleFrom(
-                    foregroundColor: const Color(0xFFDC2626),
+                    foregroundColor: AppColors.adminRejectText,
                   ),
                   child: const Text(
                     'Reject registration',

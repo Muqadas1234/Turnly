@@ -15,7 +15,7 @@ class AdminPanelView extends StatelessWidget {
     final vm = Get.find<AdminViewModel>();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
+      backgroundColor: AppColors.background,
       body: Obx(() {
         switch (vm.selectedTab.value) {
           case 0:
@@ -39,31 +39,31 @@ class AdminPanelView extends StatelessWidget {
               if (index == 2) vm.fetchApprovedHospitals();
             },
             type: BottomNavigationBarType.fixed,
-            selectedItemColor: const Color(0xFF0D6E6E),
+            selectedItemColor: AppColors.adminPrimary,
             unselectedItemColor: AppColors.textSecondary,
             selectedFontSize: 12,
             unselectedFontSize: 12,
-            backgroundColor: Colors.white,
+            backgroundColor: AppColors.surface,
             elevation: 8,
             items: const [
               BottomNavigationBarItem(
                 icon: AppIcon('shield_check', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('shield_check', size: 22, color: Color(0xFF0D6E6E)),
+                activeIcon: AppIcon('shield_check', size: 22, color: AppColors.adminPrimary),
                 label: 'Approvals',
               ),
               BottomNavigationBarItem(
                 icon: AppIcon('bar_chart', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('bar_chart', size: 22, color: Color(0xFF0D6E6E)),
+                activeIcon: AppIcon('bar_chart', size: 22, color: AppColors.adminPrimary),
                 label: 'Stats',
               ),
               BottomNavigationBarItem(
                 icon: AppIcon('hospital', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('hospital', size: 22, color: Color(0xFF0D6E6E)),
+                activeIcon: AppIcon('hospital', size: 22, color: AppColors.adminPrimary),
                 label: 'Hospitals',
               ),
               BottomNavigationBarItem(
                 icon: AppIcon('user', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('user', size: 22, color: Color(0xFF0D6E6E)),
+                activeIcon: AppIcon('user', size: 22, color: AppColors.adminPrimary),
                 label: 'Profile',
               ),
             ],
@@ -76,7 +76,7 @@ class AdminPanelView extends StatelessWidget {
     return SafeArea(
       child: RefreshIndicator(
         onRefresh: () => vm.fetchHospitals(),
-        color: const Color(0xFF0D6E6E),
+        color: AppColors.adminPrimary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -95,7 +95,7 @@ class AdminPanelView extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF0F172A),
+                          color: AppColors.textPrimary,
                         ),
                       ),
                       SizedBox(height: 4),
@@ -110,7 +110,7 @@ class AdminPanelView extends StatelessWidget {
                   ),
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: AppColors.border),
                     ),
@@ -162,7 +162,7 @@ class AdminPanelView extends StatelessWidget {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 60),
                     child: Center(
-                      child: CircularProgressIndicator(color: Color(0xFF0D6E6E)),
+                      child: CircularProgressIndicator(color: AppColors.adminPrimary),
                     ),
                   );
                 }
@@ -211,10 +211,10 @@ class AdminPanelView extends StatelessWidget {
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0D6E6E) : Colors.white,
+          color: isSelected ? AppColors.adminPrimary : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? const Color(0xFF0D6E6E) : AppColors.border,
+            color: isSelected ? AppColors.adminPrimary : AppColors.border,
           ),
         ),
         child: Text(
@@ -222,7 +222,7 @@ class AdminPanelView extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+            color: isSelected ? AppColors.surface : AppColors.textSecondary,
           ),
         ),
       ),
@@ -254,7 +254,7 @@ class AdminPanelView extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.border),
           boxShadow: [
@@ -274,13 +274,13 @@ class AdminPanelView extends StatelessWidget {
               children: [
                 CircleAvatar(
                   radius: 22,
-                  backgroundColor: const Color(0xFFE0F2F1),
+                  backgroundColor: AppColors.adminPrimaryLight,
                   child: Text(
                     initials,
                     style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF00695C),
+                      color: AppColors.adminPrimaryDark,
                     ),
                   ),
                 ),
@@ -363,8 +363,8 @@ class AdminPanelView extends StatelessWidget {
                       child: TextButton(
                         onPressed: () => vm.rejectHospital(hospitalId),
                         style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFFDE8E8),
-                          foregroundColor: const Color(0xFFDC2626),
+                          backgroundColor: AppColors.adminRejectBg,
+                          foregroundColor: AppColors.adminRejectText,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
                           ),
@@ -386,8 +386,8 @@ class AdminPanelView extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => vm.approveHospital(hospitalId),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0D6E6E),
-                          foregroundColor: Colors.white,
+                          backgroundColor: AppColors.adminPrimary,
+                          foregroundColor: AppColors.surface,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(10),
@@ -396,7 +396,7 @@ class AdminPanelView extends StatelessWidget {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            AppIcon('check', size: 16, color: Colors.white),
+                            AppIcon('check', size: 16, color: AppColors.surface),
                             SizedBox(width: 6),
                             FittedBox(
                               fit: BoxFit.scaleDown,
@@ -419,7 +419,7 @@ class AdminPanelView extends StatelessWidget {
                 child: OutlinedButton(
                   onPressed: () => vm.suspendHospital(hospitalId),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFFFCA5A5)),
+                    side: const BorderSide(color: AppColors.adminSuspendedBorder),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
@@ -427,11 +427,11 @@ class AdminPanelView extends StatelessWidget {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AppIcon('ban', size: 16, color: Color(0xFFDC2626)),
+                      AppIcon('ban', size: 16, color: AppColors.adminSuspendedText),
                       SizedBox(width: 6),
                       Text(
                         'Suspend hospital',
-                        style: TextStyle(color: Color(0xFFDC2626), fontSize: 13),
+                        style: TextStyle(color: AppColors.adminSuspendedText, fontSize: 13),
                       ),
                     ],
                   ),
@@ -451,18 +451,18 @@ class AdminPanelView extends StatelessWidget {
 
     switch (status) {
       case 'approved':
-        bg = const Color(0xFFD1FAE5);
-        text = const Color(0xFF059669);
+        bg = AppColors.adminApprovedBg;
+        text = AppColors.adminApprovedText;
         label = 'Approved';
         break;
       case 'suspended':
-        bg = const Color(0xFFFEE2E2);
-        text = const Color(0xFFDC2626);
+        bg = AppColors.adminSuspendedBg;
+        text = AppColors.adminSuspendedText;
         label = 'Suspended';
         break;
       default:
-        bg = const Color(0xFFFEF3C7);
-        text = const Color(0xFFD97706);
+        bg = AppColors.adminPendingBg;
+        text = AppColors.adminPendingText;
         label = 'Pending';
     }
 
@@ -496,7 +496,7 @@ class AdminPanelView extends StatelessWidget {
               style: TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF0F172A),
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 16),
@@ -536,8 +536,8 @@ class AdminPanelView extends StatelessWidget {
             const SizedBox(height: 40),
             const CircleAvatar(
               radius: 40,
-              backgroundColor: Color(0xFF0D6E6E),
-              child: AppIcon('shield_check', size: 38, color: Colors.white),
+              backgroundColor: AppColors.adminPrimary,
+              child: AppIcon('shield_check', size: 38, color: AppColors.surface),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -556,8 +556,8 @@ class AdminPanelView extends StatelessWidget {
               child: ElevatedButton(
                 onPressed: () => authVm.logout(),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.surface,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -565,7 +565,7 @@ class AdminPanelView extends StatelessWidget {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AppIcon('logout', size: 18, color: Colors.white),
+                    AppIcon('logout', size: 18, color: AppColors.surface),
                     SizedBox(width: 8),
                     Text('Log out'),
                   ],

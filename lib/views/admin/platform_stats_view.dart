@@ -17,7 +17,7 @@ class PlatformStatsView extends StatelessWidget {
           await vm.fetchStats();
           await vm.fetchApprovedHospitals();
         },
-        color: const Color(0xFF0D6E6E),
+        color: AppColors.adminPrimary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -33,19 +33,19 @@ class PlatformStatsView extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A),
+                      color: AppColors.textPrimary,
                     ),
                   ),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF0D6E6E),
+                      color: AppColors.adminPrimary,
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: const Text(
                       'Today',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: AppColors.surface,
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
                       ),
@@ -70,8 +70,8 @@ class PlatformStatsView extends StatelessWidget {
                         Expanded(
                           child: _buildMetricCard(
                             iconName: 'hospital',
-                            iconColor: const Color(0xFF0D6E6E),
-                            iconBg: const Color(0xFFE0F2F1),
+                            iconColor: AppColors.adminPrimary,
+                            iconBg: AppColors.adminPrimaryLight,
                             value: '$totalHospitals',
                             label: 'Total hospitals',
                           ),
@@ -80,8 +80,8 @@ class PlatformStatsView extends StatelessWidget {
                         Expanded(
                           child: _buildMetricCard(
                             iconName: 'activity',
-                            iconColor: const Color(0xFF2563EB),
-                            iconBg: const Color(0xFFDBEAFE),
+                            iconColor: AppColors.adminBlue,
+                            iconBg: AppColors.adminBlueBg,
                             value: '$activeQueues',
                             label: 'Active queues',
                           ),
@@ -94,8 +94,8 @@ class PlatformStatsView extends StatelessWidget {
                         Expanded(
                           child: _buildMetricCard(
                             iconName: 'ticket',
-                            iconColor: const Color(0xFFD97706),
-                            iconBg: const Color(0xFFFEF3C7),
+                            iconColor: AppColors.adminPendingText,
+                            iconBg: AppColors.adminPendingBg,
                             value: '$tokensToday',
                             label: 'Tokens today',
                           ),
@@ -104,8 +104,8 @@ class PlatformStatsView extends StatelessWidget {
                         Expanded(
                           child: _buildMetricCard(
                             iconName: 'users',
-                            iconColor: const Color(0xFF7C3AED),
-                            iconBg: const Color(0xFFEDE9FE),
+                            iconColor: AppColors.adminPurple,
+                            iconBg: AppColors.adminPurpleBg,
                             value: totalPatients >= 1000
                                 ? '${(totalPatients / 1000).toStringAsFixed(1)}k'
                                 : '$totalPatients',
@@ -123,7 +123,7 @@ class PlatformStatsView extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.card,
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(color: AppColors.border),
                 ),
@@ -139,15 +139,15 @@ class PlatformStatsView extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    _buildHospitalProgressBar('City General', 420, 500, const Color(0xFF0D6E6E)),
+                    _buildHospitalProgressBar('City General', 420, 500, AppColors.adminPrimary),
                     const SizedBox(height: 12),
-                    _buildHospitalProgressBar('Aga Khan', 360, 500, const Color(0xFF2563EB)),
+                    _buildHospitalProgressBar('Aga Khan', 360, 500, AppColors.adminBlue),
                     const SizedBox(height: 12),
-                    _buildHospitalProgressBar('Liaquat Nat.', 250, 500, const Color(0xFF7C3AED)),
+                    _buildHospitalProgressBar('Liaquat Nat.', 250, 500, AppColors.adminPurple),
                     const SizedBox(height: 12),
-                    _buildHospitalProgressBar('Shifa Care', 140, 500, const Color(0xFFEA580C)),
+                    _buildHospitalProgressBar('Shifa Care', 140, 500, AppColors.adminOrange),
                     const SizedBox(height: 12),
-                    _buildHospitalProgressBar('Noor Medical', 78, 500, const Color(0xFF60A5FA)),
+                    _buildHospitalProgressBar('Noor Medical', 78, 500, AppColors.accent),
                   ],
                 ),
               ),
@@ -172,7 +172,7 @@ class PlatformStatsView extends StatelessWidget {
                       vm.fetchApprovedHospitals();
                     },
                     style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF0D6E6E),
+                      foregroundColor: AppColors.adminPrimary,
                       padding: EdgeInsets.zero,
                     ),
                     child: const Text('See all', style: TextStyle(fontWeight: FontWeight.w600)),
@@ -189,7 +189,7 @@ class PlatformStatsView extends StatelessWidget {
                   return Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: AppColors.card,
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: AppColors.border),
                     ),
@@ -215,7 +215,7 @@ class PlatformStatsView extends StatelessWidget {
                 return Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.card,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(color: AppColors.border),
                   ),
@@ -223,11 +223,11 @@ class PlatformStatsView extends StatelessWidget {
                     children: [
                       CircleAvatar(
                         radius: 20,
-                        backgroundColor: const Color(0xFFDBEAFE),
+                        backgroundColor: AppColors.adminBlueBg,
                         child: Text(
                           initials,
                           style: const TextStyle(
-                            color: Color(0xFF1E40AF),
+                            color: AppColors.adminBlue,
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -251,13 +251,13 @@ class PlatformStatsView extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFD1FAE5),
+                                color: AppColors.adminApprovedBg,
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Text(
                                 'Active',
                                 style: TextStyle(
-                                  color: Color(0xFF059669),
+                                  color: AppColors.adminApprovedText,
                                   fontSize: 10,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -270,7 +270,7 @@ class PlatformStatsView extends StatelessWidget {
                       TextButton(
                         onPressed: () => _confirmSuspend(context, vm, hospitalId, name),
                         style: TextButton.styleFrom(
-                          backgroundColor: const Color(0xFFFEE2E2),
+                          backgroundColor: AppColors.adminSuspendedBg,
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
@@ -279,11 +279,11 @@ class PlatformStatsView extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            AppIcon('ban', size: 14, color: Color(0xFFDC2626)),
+                            AppIcon('ban', size: 14, color: AppColors.adminSuspendedText),
                             SizedBox(width: 4),
                             Text(
                               'Suspend',
-                              style: TextStyle(fontSize: 12, color: Color(0xFFDC2626)),
+                              style: TextStyle(fontSize: 12, color: AppColors.adminSuspendedText),
                             ),
                           ],
                         ),
@@ -316,8 +316,8 @@ class PlatformStatsView extends StatelessWidget {
               Get.back();
               await vm.suspendHospital(hospitalId);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFDC2626)),
-            child: const Text('Suspend', style: TextStyle(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.error),
+            child: const Text('Suspend', style: TextStyle(color: AppColors.surface)),
           ),
         ],
       ),
@@ -335,7 +335,7 @@ class PlatformStatsView extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.card,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: AppColors.border),
       ),
@@ -394,7 +394,7 @@ class PlatformStatsView extends StatelessWidget {
             child: LinearProgressIndicator(
               value: ratio,
               minHeight: 8,
-              backgroundColor: const Color(0xFFF1F5F9),
+              backgroundColor: AppColors.divider,
               valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
