@@ -30,6 +30,7 @@ dependencies:
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0
   pin_code_fields: ^8.0.1
+  flutter_svg: ^2.0.10+1
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +39,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/icons/

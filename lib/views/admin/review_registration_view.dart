@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
+import '../../widgets/app_icon.dart';
 
 class ReviewRegistrationView extends StatefulWidget {
   final Map<String, dynamic> hospital;
@@ -48,7 +49,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         backgroundColor: Colors.white,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new, size: 18, color: AppColors.textPrimary),
+          icon: const AppIcon('arrow_left', size: 20, color: AppColors.textPrimary),
           onPressed: () => Get.back(),
         ),
         title: const Text(

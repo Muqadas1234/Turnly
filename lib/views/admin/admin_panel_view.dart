@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/app_icon.dart';
 import 'platform_stats_view.dart';
 import 'review_registration_view.dart';
 
@@ -30,43 +31,43 @@ class AdminPanelView extends StatelessWidget {
         }
       }),
       bottomNavigationBar: Obx(() => BottomNavigationBar(
-        currentIndex: vm.selectedTab.value,
-        onTap: (index) {
-          vm.selectedTab.value = index;
-          if (index == 0) vm.fetchHospitals();
-          if (index == 1) vm.fetchStats();
-          if (index == 2) vm.fetchApprovedHospitals();
-        },
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF0D6E6E),
-        unselectedItemColor: AppColors.textSecondary,
-        selectedFontSize: 12,
-        unselectedFontSize: 12,
-        backgroundColor: Colors.white,
-        elevation: 8,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.verified_user_outlined),
-            activeIcon: Icon(Icons.verified_user),
-            label: 'Approvals',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart_outlined),
-            activeIcon: Icon(Icons.bar_chart),
-            label: 'Stats',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.local_hospital_outlined),
-            activeIcon: Icon(Icons.local_hospital),
-            label: 'Hospitals',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline),
-            activeIcon: Icon(Icons.person),
-            label: 'Profile',
-          ),
-        ],
-      )),
+            currentIndex: vm.selectedTab.value,
+            onTap: (index) {
+              vm.selectedTab.value = index;
+              if (index == 0) vm.fetchHospitals();
+              if (index == 1) vm.fetchStats();
+              if (index == 2) vm.fetchApprovedHospitals();
+            },
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: const Color(0xFF0D6E6E),
+            unselectedItemColor: AppColors.textSecondary,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            backgroundColor: Colors.white,
+            elevation: 8,
+            items: const [
+              BottomNavigationBarItem(
+                icon: AppIcon('shield_check', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('shield_check', size: 22, color: Color(0xFF0D6E6E)),
+                label: 'Approvals',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('bar_chart', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('bar_chart', size: 22, color: Color(0xFF0D6E6E)),
+                label: 'Stats',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('hospital', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('hospital', size: 22, color: Color(0xFF0D6E6E)),
+                label: 'Hospitals',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('user', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('user', size: 22, color: Color(0xFF0D6E6E)),
+                label: 'Profile',
+              ),
+            ],
+          )),
     );
   }
 
@@ -114,7 +115,7 @@ class AdminPanelView extends StatelessWidget {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.notifications_none, color: AppColors.textPrimary),
+                      icon: const AppIcon('bell', size: 20, color: AppColors.textPrimary),
                       onPressed: () {},
                     ),
                   ),
@@ -230,10 +231,10 @@ class AdminPanelView extends StatelessWidget {
 
   // Individual hospital card
   Widget _buildHospitalCard(
-      BuildContext context,
-      Map<String, dynamic> hospital,
-      AdminViewModel vm,
-      ) {
+    BuildContext context,
+    Map<String, dynamic> hospital,
+    AdminViewModel vm,
+  ) {
     final name = hospital['name'] ?? 'Hospital';
     final city = hospital['city'] ?? '';
     final managerName = hospital['manager_name'] ?? 'Not assigned';
@@ -315,7 +316,7 @@ class AdminPanelView extends StatelessWidget {
             // Manager info
             Row(
               children: [
-                const Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
+                const AppIcon('user', size: 16, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -330,12 +331,12 @@ class AdminPanelView extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
 
             // Submitted time
             Row(
               children: const [
-                Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
+                AppIcon('clock', size: 16, color: AppColors.textSecondary),
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -392,12 +393,19 @@ class AdminPanelView extends StatelessWidget {
                             borderRadius: BorderRadius.circular(10),
                           ),
                         ),
-                        child: const FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Text(
-                            '✓  Approve',
-                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
-                          ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppIcon('check', size: 16, color: Colors.white),
+                            SizedBox(width: 6),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Approve',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -408,18 +416,24 @@ class AdminPanelView extends StatelessWidget {
               SizedBox(
                 width: double.infinity,
                 height: 38,
-                child: OutlinedButton.icon(
+                child: OutlinedButton(
                   onPressed: () => vm.suspendHospital(hospitalId),
-                  icon: const Icon(Icons.block, size: 16, color: Color(0xFFDC2626)),
-                  label: const Text(
-                    'Suspend hospital',
-                    style: TextStyle(color: Color(0xFFDC2626), fontSize: 13),
-                  ),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Color(0xFFFCA5A5)),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
                     ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AppIcon('ban', size: 16, color: Color(0xFFDC2626)),
+                      SizedBox(width: 6),
+                      Text(
+                        'Suspend hospital',
+                        style: TextStyle(color: Color(0xFFDC2626), fontSize: 13),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -523,7 +537,7 @@ class AdminPanelView extends StatelessWidget {
             const CircleAvatar(
               radius: 40,
               backgroundColor: Color(0xFF0D6E6E),
-              child: Icon(Icons.admin_panel_settings, size: 40, color: Colors.white),
+              child: AppIcon('shield_check', size: 38, color: Colors.white),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -531,26 +545,30 @@ class AdminPanelView extends StatelessWidget {
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 4),
-
-              Text(
-                authVm.currentUser.value?['email'] ?? 'team.turnly@gmail.com',
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-
+            Text(
+              authVm.currentUser.value?['email'] ?? 'team.turnly@gmail.com',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
             const Spacer(),
             SizedBox(
               width: double.infinity,
               height: 48,
-              child: ElevatedButton.icon(
+              child: ElevatedButton(
                 onPressed: () => authVm.logout(),
-                icon: const Icon(Icons.logout, size: 18),
-                label: const Text('Log out'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFEF4444),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AppIcon('logout', size: 18, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Log out'),
+                  ],
                 ),
               ),
             ),
@@ -561,4 +579,3 @@ class AdminPanelView extends StatelessWidget {
     );
   }
 }
-
