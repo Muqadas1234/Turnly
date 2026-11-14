@@ -120,72 +120,70 @@ class PlatformStatsView extends StatelessWidget {
               const SizedBox(height: 24),
 
               // Section: Tokens issued per hospital
-              Builder(
-                builder: (context) {
-                  final rawList = vm.platformStats['tokensPerHospital'];
-                  final tokensList = (rawList is List) ? rawList : [];
+              Obx(() {
+                final rawList = vm.platformStats['tokensPerHospital'];
+                final tokensList = (rawList is List) ? rawList : [];
 
-                  final colors = [
-                    AppColors.adminPrimary,
-                    AppColors.adminBlue,
-                    AppColors.adminPurple,
-                    AppColors.adminOrange,
-                    AppColors.accent,
-                  ];
+                final colors = [
+                  AppColors.adminPrimary,
+                  AppColors.adminBlue,
+                  AppColors.adminPurple,
+                  AppColors.adminOrange,
+                  AppColors.accent,
+                ];
 
-                  final maxTokens = tokensList.fold<int>(
-                    1,
-                    (max, item) {
-                      final count = int.tryParse(item['token_count']?.toString() ?? '0') ?? 0;
-                      return count > max ? count : max;
-                    },
-                  );
+                final maxTokens = tokensList.fold<int>(
+                  1,
+                  (max, item) {
+                    final count = int.tryParse(item['token_count']?.toString() ?? '0') ?? 0;
+                    return count > max ? count : max;
+                  },
+                );
 
-                  return Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Tokens issued per hospital',
-                          style: TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.textPrimary,
-                          ),
+                return Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    color: AppColors.card,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Tokens issued per hospital',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
                         ),
-                        const SizedBox(height: 16),
-                        if (tokensList.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 8),
-                            child: Text(
-                              'No token data available yet',
-                              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-                            ),
-                          )
-                        else
-                          ...tokensList.asMap().entries.map((entry) {
-                            final idx = entry.key;
-                            final item = entry.value as Map;
-                            final hospitalName = (item['name'] ?? 'Hospital').toString();
-                            final count = int.tryParse(item['token_count']?.toString() ?? '0') ?? 0;
-                            final color = colors[idx % colors.length];
+                      ),
+                      const SizedBox(height: 16),
+                      if (tokensList.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            'No token data available yet',
+                            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                          ),
+                        )
+                      else
+                        ...tokensList.asMap().entries.map((entry) {
+                          final idx = entry.key;
+                          final item = entry.value as Map;
+                          final hospitalName = (item['name'] ?? 'Hospital').toString();
+                          final count = int.tryParse(item['token_count']?.toString() ?? '0') ?? 0;
+                          final color = colors[idx % colors.length];
 
-                            return Padding(
-                              padding: EdgeInsets.only(bottom: idx == tokensList.length - 1 ? 0 : 12),
-                              child: _buildHospitalProgressBar(hospitalName, count, maxTokens, color),
-                            );
-                          }),
-                      ],
-                    ),
-                  );
-                },
-              ),
+                          return Padding(
+                            padding: EdgeInsets.only(bottom: idx == tokensList.length - 1 ? 0 : 12),
+                            child: _buildHospitalProgressBar(hospitalName, count, maxTokens, color),
+                          );
+                        }),
+                    ],
+                  ),
+                );
+              }),
               const SizedBox(height: 24),
 
               // Section: Manage hospitals Header with "See all"
