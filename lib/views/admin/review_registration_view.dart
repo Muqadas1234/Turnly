@@ -28,14 +28,49 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     final h = widget.hospital;
     final name = h['name'] ?? 'Hospital';
     final city = h['city'] ?? '';
-    final address = h['address'] ?? 'Not specified';
-    final phone = h['phone'] ?? 'Not specified';
-    final type = h['type'] ?? 'Private hospital';
-    final opdTimings = h['opd_timings'] ?? '9:00 AM - 8:00 PM';
+    final address = (h['address'] != null && h['address'].toString().trim().isNotEmpty)
+        ? h['address'].toString()
+        : 'Not specified';
+    final phone = (h['phone'] != null && h['phone'].toString().trim().isNotEmpty)
+        ? h['phone'].toString()
+        : 'Not specified';
+    final type = (h['type'] != null && h['type'].toString().trim().isNotEmpty)
+        ? h['type'].toString()
+        : 'Not specified';
+    final opdTimings = (h['opd_timings'] != null && h['opd_timings'].toString().trim().isNotEmpty)
+        ? h['opd_timings'].toString()
+        : 'Not specified';
     final managerName = h['manager_name'] ?? 'Not assigned';
     final managerEmail = h['manager_email'] ?? '';
     final hospitalId = h['id'] as int? ?? 0;
     final status = (h['status'] ?? 'pending').toString().toLowerCase();
+
+    // Derive status badge styling and text
+    final Color statusBg;
+    final Color statusText;
+    final String statusLabel;
+
+    switch (status) {
+      case 'approved':
+        statusBg = AppColors.adminApprovedBg;
+        statusText = AppColors.adminApprovedText;
+        statusLabel = 'Approved';
+        break;
+      case 'suspended':
+        statusBg = AppColors.adminSuspendedBg;
+        statusText = AppColors.adminSuspendedText;
+        statusLabel = 'Suspended';
+        break;
+      case 'rejected':
+        statusBg = AppColors.adminRejectBg;
+        statusText = AppColors.adminRejectText;
+        statusLabel = 'Rejected';
+        break;
+      default:
+        statusBg = AppColors.adminPendingBg;
+        statusText = AppColors.adminPendingText;
+        statusLabel = 'Pending review';
+    }
 
     // Generate initials (e.g., 'City General Hospital' -> 'CG')
     final words = name.trim().split(RegExp(r'\s+'));
@@ -105,15 +140,15 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                           decoration: BoxDecoration(
-                            color: AppColors.adminPendingBg,
+                            color: statusBg,
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: const Text(
-                            'Pending review',
+                          child: Text(
+                            statusLabel,
                             style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.adminPendingText,
+                              color: statusText,
                             ),
                           ),
                         ),
@@ -198,8 +233,10 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 height: 48,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await _adminVm.approveHospital(hospitalId);
-                    Get.back();
+                    final success = await _adminVm.approveHospital(hospitalId);
+                    if (success) {
+                      Get.back();
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.adminPrimary,
@@ -221,11 +258,13 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 height: 44,
                 child: TextButton(
                   onPressed: () async {
-                    await _adminVm.rejectHospital(
+                    final success = await _adminVm.rejectHospital(
                       hospitalId,
                       reason: _rejectionController.text.trim(),
                     );
-                    Get.back();
+                    if (success) {
+                      Get.back();
+                    }
                   },
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.adminRejectText,

@@ -23,6 +23,9 @@ class AdminViewModel extends GetxController {
   // Platform statistics
   final platformStats = <String, dynamic>{}.obs;
 
+  // Request generation counter to avoid race conditions when switching filters
+  int _filterRequestGen = 0;
+
   @override
   void onInit() {
     super.onInit();
@@ -33,11 +36,14 @@ class AdminViewModel extends GetxController {
 
   // Fetch hospitals filtered by selected status for Approvals tab
   Future<void> fetchHospitals({String? status}) async {
+    final currentGen = ++_filterRequestGen;
     isLoading.value = true;
     final filter = status ?? selectedFilter.value;
 
     try {
       final response = await ApiService.getAdminHospitals(status: filter);
+      if (currentGen != _filterRequestGen) return;
+
       if (response['success'] == true) {
         final list = (response['data'] as List? ?? [])
             .map((e) => Map<String, dynamic>.from(e as Map))
@@ -51,6 +57,7 @@ class AdminViewModel extends GetxController {
         suspendedCount.value = counts['suspended'] ?? 0;
       }
     } catch (_) {
+      if (currentGen != _filterRequestGen) return;
       Get.snackbar(
         'Error',
         'Failed to fetch hospital registrations',
@@ -58,7 +65,9 @@ class AdminViewModel extends GetxController {
         colorText: Colors.red.shade800,
       );
     } finally {
-      isLoading.value = false;
+      if (currentGen == _filterRequestGen) {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -82,7 +91,7 @@ class AdminViewModel extends GetxController {
   }
 
   // Approve a hospital
-  Future<void> approveHospital(int hospitalId) async {
+  Future<bool> approveHospital(int hospitalId) async {
     try {
       final response = await ApiService.approveHospital(hospitalId);
       if (response['success'] == true) {
@@ -95,14 +104,29 @@ class AdminViewModel extends GetxController {
         fetchHospitals();
         fetchApprovedHospitals();
         fetchStats();
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to approve hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
     } catch (_) {
-      Get.snackbar('Error', 'Failed to approve hospital');
+      Get.snackbar(
+        'Error',
+        'Failed to approve hospital',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
     }
   }
 
   // Reject a hospital
-  Future<void> rejectHospital(int hospitalId, {String? reason}) async {
+  Future<bool> rejectHospital(int hospitalId, {String? reason}) async {
     try {
       final response = await ApiService.rejectHospital(hospitalId, rejectionNote: reason);
       if (response['success'] == true) {
@@ -115,14 +139,29 @@ class AdminViewModel extends GetxController {
         fetchHospitals();
         fetchApprovedHospitals();
         fetchStats();
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to reject hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
     } catch (_) {
-      Get.snackbar('Error', 'Failed to reject hospital');
+      Get.snackbar(
+        'Error',
+        'Failed to reject hospital',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
     }
   }
 
   // Suspend an approved hospital
-  Future<void> suspendHospital(int hospitalId) async {
+  Future<bool> suspendHospital(int hospitalId) async {
     try {
       final response = await ApiService.suspendHospital(hospitalId);
       if (response['success'] == true) {
@@ -135,9 +174,24 @@ class AdminViewModel extends GetxController {
         fetchHospitals();
         fetchApprovedHospitals();
         fetchStats();
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to suspend hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
     } catch (_) {
-      Get.snackbar('Error', 'Failed to suspend hospital');
+      Get.snackbar(
+        'Error',
+        'Failed to suspend hospital',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
     }
   }
 

@@ -87,9 +87,9 @@ class AdminPanelView extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Column(
+                  const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
+                    children: [
                       Text(
                         'Admin panel',
                         style: TextStyle(
@@ -334,8 +334,8 @@ class AdminPanelView extends StatelessWidget {
             const SizedBox(height: 6),
 
             // Submitted time
-            Row(
-              children: const [
+            const Row(
+              children: [
                 AppIcon('clock', size: 16, color: AppColors.textSecondary),
                 SizedBox(width: 6),
                 Expanded(
