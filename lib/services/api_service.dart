@@ -213,4 +213,48 @@ class ApiService {
       };
     }
   }
+
+  // 1. Fetch approved hospitals for patient home screen
+  static Future<Map<String, dynamic>> getPatientHospitals({
+    String? city,
+    String? search,
+  }) async {
+    final queryParams = <String, String>{};
+    if (city != null && city.isNotEmpty && city.toLowerCase() != 'all') {
+      queryParams['city'] = city;
+    }
+    if (search != null && search.trim().isNotEmpty) {
+      queryParams['search'] = search.trim();
+    }
+
+    final uri = Uri.parse(ApiEndpoints.patientHospitals).replace(
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+
+    final response = await http.get(uri);
+    return jsonDecode(response.body);
+  }
+
+  // 2. Fetch current active token for logged-in patient
+  static Future<Map<String, dynamic>> getPatientActiveToken() async {
+    final token = await getToken();
+    final response = await http.get(
+      Uri.parse(ApiEndpoints.patientActiveToken),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+    );
+    return jsonDecode(response.body);
+  }
+
+
+  // 3. Fetch single hospital details with departments & doctors
+  static Future<Map<String, dynamic>> getHospitalDetails(int hospitalId) async {
+    final response = await http.get(
+      Uri.parse(ApiEndpoints.patientHospitalDetail(hospitalId)),
+    );
+    return jsonDecode(response.body);
+  }
+
 }

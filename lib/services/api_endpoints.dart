@@ -25,4 +25,12 @@ class ApiEndpoints {
   static String adminRejectHospital(int id) => '$baseUrl/admin/hospitals/$id/reject';
   static String adminSuspendHospital(int id) => '$baseUrl/admin/hospitals/$id/suspend';
   static String get adminStats => '$baseUrl/admin/stats';
+
+
+  // Patient Endpoints
+  static String get patientHospitals => '$baseUrl/patient/hospitals';
+  static String get patientActiveToken => '$baseUrl/patient/active-token';
+  static String patientHospitalDetail(int id) => '$baseUrl/patient/hospitals/$id';
 }
+
+
