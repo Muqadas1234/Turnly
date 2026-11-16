@@ -24,6 +24,7 @@ class PatientViewModel extends GetxController {
   // Request counters to discard stale async responses
   int _requestGen = 0;
   int _detailsRequestGen = 0;
+  int _tokenRequestGen = 0;
 
   @override
   void onInit() {
@@ -124,15 +125,20 @@ class PatientViewModel extends GetxController {
 
   // Fetch current active token for logged in patient
   Future<void> fetchActiveToken() async {
+    final currentGen = ++_tokenRequestGen;
     try {
       final response = await ApiService.getPatientActiveToken();
+      if (currentGen != _tokenRequestGen) return;
+
       if (response['success'] == true && response['data'] != null) {
         activeToken.value = Map<String, dynamic>.from(response['data'] as Map);
       } else {
         activeToken.value = null;
       }
     } catch (_) {
-      activeToken.value = null;
+      if (currentGen == _tokenRequestGen) {
+        activeToken.value = null;
+      }
     }
   }
 
