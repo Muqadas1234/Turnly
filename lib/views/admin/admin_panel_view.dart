@@ -1,15 +1,581 @@
 import 'package:flutter/material.dart';
-
-import '../../widgets/session_home.dart';
+import 'package:get/get.dart';
+import '../../utils/app_colors.dart';
+import '../../viewmodels/admin_viewmodel.dart';
+import '../../viewmodels/auth_viewmodel.dart';
+import '../../widgets/app_icon.dart';
+import 'platform_stats_view.dart';
+import 'review_registration_view.dart';
 
 class AdminPanelView extends StatelessWidget {
   const AdminPanelView({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const SessionHome(
-      title: 'Admin',
-      subtitle: 'You are signed in as an admin.',
+    final vm = Get.find<AdminViewModel>();
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Obx(() {
+        switch (vm.selectedTab.value) {
+          case 0:
+            return _buildApprovalsTab(context, vm);
+          case 1:
+            return const PlatformStatsView();
+          case 2:
+            return _buildHospitalsTab(context, vm);
+          case 3:
+            return _buildProfileTab(context);
+          default:
+            return _buildApprovalsTab(context, vm);
+        }
+      }),
+      bottomNavigationBar: Obx(() => BottomNavigationBar(
+            currentIndex: vm.selectedTab.value,
+            onTap: (index) {
+              vm.selectedTab.value = index;
+              if (index == 0) vm.fetchHospitals();
+              if (index == 1) vm.fetchStats();
+              if (index == 2) vm.fetchApprovedHospitals();
+            },
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: AppColors.adminPrimary,
+            unselectedItemColor: AppColors.textSecondary,
+            selectedFontSize: 12,
+            unselectedFontSize: 12,
+            backgroundColor: AppColors.surface,
+            elevation: 8,
+            items: const [
+              BottomNavigationBarItem(
+                icon: AppIcon('shield_check', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('shield_check', size: 22, color: AppColors.adminPrimary),
+                label: 'Approvals',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('bar_chart', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('bar_chart', size: 22, color: AppColors.adminPrimary),
+                label: 'Stats',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('hospital', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('hospital', size: 22, color: AppColors.adminPrimary),
+                label: 'Hospitals',
+              ),
+              BottomNavigationBarItem(
+                icon: AppIcon('user', size: 22, color: AppColors.textSecondary),
+                activeIcon: AppIcon('user', size: 22, color: AppColors.adminPrimary),
+                label: 'Profile',
+              ),
+            ],
+          )),
+    );
+  }
+
+  // Tab 0: Approvals screen
+  Widget _buildApprovalsTab(BuildContext context, AdminViewModel vm) {
+    return SafeArea(
+      child: RefreshIndicator(
+        onRefresh: () => vm.fetchHospitals(),
+        color: AppColors.adminPrimary,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Admin panel',
+                        style: TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 4),
+                      Text(
+                        'Review hospital registrations',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: IconButton(
+                      icon: const AppIcon('bell', size: 20, color: AppColors.textPrimary),
+                      onPressed: () {},
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Filter chips row (Pending, Approved, Suspended)
+              Obx(() => SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children: [
+                        _buildFilterChip(
+                          title: 'Pending',
+                          count: vm.pendingCount.value,
+                          filterKey: 'pending',
+                          isSelected: vm.selectedFilter.value == 'pending',
+                          onTap: () => vm.setFilter('pending'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          title: 'Approved',
+                          count: vm.approvedCount.value,
+                          filterKey: 'approved',
+                          isSelected: vm.selectedFilter.value == 'approved',
+                          onTap: () => vm.setFilter('approved'),
+                        ),
+                        const SizedBox(width: 8),
+                        _buildFilterChip(
+                          title: 'Suspended',
+                          count: vm.suspendedCount.value,
+                          filterKey: 'suspended',
+                          isSelected: vm.selectedFilter.value == 'suspended',
+                          onTap: () => vm.setFilter('suspended'),
+                        ),
+                      ],
+                    ),
+                  )),
+              const SizedBox(height: 20),
+
+              // Hospital cards list
+              Obx(() {
+                if (vm.isLoading.value) {
+                  return const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: CircularProgressIndicator(color: AppColors.adminPrimary),
+                    ),
+                  );
+                }
+
+                if (vm.hospitals.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Text(
+                        'No ${vm.selectedFilter.value} hospitals found',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: vm.hospitals.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                  itemBuilder: (context, index) {
+                    final hospital = vm.hospitals[index];
+                    return _buildHospitalCard(context, hospital, vm);
+                  },
+                );
+              }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Filter chip widget
+  Widget _buildFilterChip({
+    required String title,
+    required int count,
+    required String filterKey,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.adminPrimary : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.adminPrimary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          '$title · $count',
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? AppColors.surface : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Individual hospital card
+  Widget _buildHospitalCard(
+    BuildContext context,
+    Map<String, dynamic> hospital,
+    AdminViewModel vm,
+  ) {
+    final name = hospital['name'] ?? 'Hospital';
+    final city = hospital['city'] ?? '';
+    final managerName = hospital['manager_name'] ?? 'Not assigned';
+    final status = (hospital['status'] ?? 'pending').toString().toLowerCase();
+    final hospitalId = hospital['id'] as int? ?? 0;
+
+    // Generate initials (e.g., 'City General Hospital' -> 'CG')
+    final words = name.trim().split(RegExp(r'\s+'));
+    final initials = words.length >= 2
+        ? '${words[0][0]}${words[1][0]}'.toUpperCase()
+        : name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase();
+
+    return GestureDetector(
+      onTap: () {
+        Get.to(() => ReviewRegistrationView(hospital: hospital));
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top row: Avatar, Name/City, and Status badge
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppColors.adminPrimaryLight,
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.adminPrimaryDark,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        city,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                _buildStatusBadge(status),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Manager info
+            Row(
+              children: [
+                const AppIcon('user', size: 16, color: AppColors.textSecondary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Manager: $managerName',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+
+            // Submitted time
+            const Row(
+              children: [
+                AppIcon('clock', size: 16, color: AppColors.textSecondary),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'Recently submitted',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            // Action buttons row (Reject / Approve)
+            if (status == 'pending')
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: TextButton(
+                        onPressed: () => vm.rejectHospital(hospitalId),
+                        style: TextButton.styleFrom(
+                          backgroundColor: AppColors.adminRejectBg,
+                          foregroundColor: AppColors.adminRejectText,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            'Reject',
+                            style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 40,
+                      child: ElevatedButton(
+                        onPressed: () => vm.approveHospital(hospitalId),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.adminPrimary,
+                          foregroundColor: AppColors.surface,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            AppIcon('check', size: 16, color: AppColors.surface),
+                            SizedBox(width: 6),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                'Approve',
+                                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            else if (status == 'approved')
+              SizedBox(
+                width: double.infinity,
+                height: 38,
+                child: OutlinedButton(
+                  onPressed: () => vm.suspendHospital(hospitalId),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: AppColors.adminSuspendedBorder),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      AppIcon('ban', size: 16, color: AppColors.adminSuspendedText),
+                      SizedBox(width: 6),
+                      Text(
+                        'Suspend hospital',
+                        style: TextStyle(color: AppColors.adminSuspendedText, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Status pill widget
+  Widget _buildStatusBadge(String status) {
+    Color bg;
+    Color text;
+    String label;
+
+    switch (status) {
+      case 'approved':
+        bg = AppColors.adminApprovedBg;
+        text = AppColors.adminApprovedText;
+        label = 'Approved';
+        break;
+      case 'suspended':
+        bg = AppColors.adminSuspendedBg;
+        text = AppColors.adminSuspendedText;
+        label = 'Suspended';
+        break;
+      default:
+        bg = AppColors.adminPendingBg;
+        text = AppColors.adminPendingText;
+        label = 'Pending';
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+          color: text,
+        ),
+      ),
+    );
+  }
+
+  // Tab 2: Manage Hospitals tab
+  Widget _buildHospitalsTab(BuildContext context, AdminViewModel vm) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Manage Hospitals',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Obx(() {
+                final approvedList = vm.approvedHospitals;
+
+                if (approvedList.isEmpty) {
+                  return const Center(child: Text('No approved hospitals yet'));
+                }
+
+                return ListView.separated(
+                  itemCount: approvedList.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final h = approvedList[index];
+                    return _buildHospitalCard(context, h, vm);
+                  },
+                );
+              }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Tab 3: Admin Profile tab
+  Widget _buildProfileTab(BuildContext context) {
+    final authVm = Get.find<AuthViewModel>();
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          children: [
+            const SizedBox(height: 40),
+            const CircleAvatar(
+              radius: 40,
+              backgroundColor: AppColors.adminPrimary,
+              child: AppIcon('shield_check', size: 38, color: AppColors.surface),
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'System Administrator',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              authVm.currentUser.value?['email'] ?? 'team.turnly@gmail.com',
+              style: const TextStyle(color: AppColors.textSecondary),
+            ),
+            const Spacer(),
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton(
+                onPressed: () => authVm.logout(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.error,
+                  foregroundColor: AppColors.surface,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    AppIcon('logout', size: 18, color: AppColors.surface),
+                    SizedBox(width: 8),
+                    Text('Log out'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+          ],
+        ),
+      ),
     );
   }
 }

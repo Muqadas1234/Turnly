@@ -226,7 +226,12 @@ class AuthViewModel extends GetxController {
   }
 
   void _navigateToHome(dynamic role) {
-    if (role?.toString() == 'manager') {
+    final userRole = role?.toString().toLowerCase();
+
+    // Check user role and route to corresponding dashboard
+    if (userRole == 'admin') {
+      Get.offAllNamed(AppRoutes.adminPanel);
+    } else if (userRole == 'manager' || userRole == 'hospital_manager') {
       Get.offAllNamed(AppRoutes.managerDashboard);
     } else {
       Get.offAllNamed(AppRoutes.home);
