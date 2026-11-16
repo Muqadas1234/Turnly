@@ -21,8 +21,9 @@ class PatientViewModel extends GetxController {
   final selectedDoctor = Rxn<Map<String, dynamic>>();
   final isLoadingDetails = false.obs;
 
-  // Request counter to discard stale search responses
+  // Request counters to discard stale async responses
   int _requestGen = 0;
+  int _detailsRequestGen = 0;
 
   @override
   void onInit() {
@@ -33,6 +34,7 @@ class PatientViewModel extends GetxController {
 
   // Load initial unfiltered hospitals and extract permanent available cities
   Future<void> loadInitialData() async {
+    final currentGen = ++_requestGen;
     isLoading.value = true;
     try {
       final response = await ApiService.getPatientHospitals();
@@ -42,7 +44,6 @@ class PatientViewModel extends GetxController {
             .toList();
         _masterHospitals.clear();
         _masterHospitals.addAll(list);
-        hospitals.assignAll(list);
 
         final cities = list
             .map((h) => h['city']?.toString().trim())
@@ -52,10 +53,17 @@ class PatientViewModel extends GetxController {
             .toList();
         cities.sort();
         availableCities.assignAll(['All', ...cities]);
+
+        // Only assign to displayed hospitals if no newer search or filter took ownership
+        if (currentGen == _requestGen && currentSearchQuery.value.isEmpty && selectedCity.value.toLowerCase() == 'all') {
+          hospitals.assignAll(list);
+        }
       }
     } catch (_) {
     } finally {
-      isLoading.value = false;
+      if (currentGen == _requestGen && currentSearchQuery.value.isEmpty && selectedCity.value.toLowerCase() == 'all') {
+        isLoading.value = false;
+      }
     }
   }
 
@@ -130,9 +138,20 @@ class PatientViewModel extends GetxController {
 
   // Fetch hospital specifications, departments, and doctors from database
   Future<void> fetchHospitalDetails(int hospitalId) async {
+    final currentGen = ++_detailsRequestGen;
+
+    // Reset hospital-specific state so previous details are not exposed
+    currentHospital.value = null;
+    departments.clear();
+    doctors.clear();
+    selectedDoctor.value = null;
+    selectedDepartmentId.value = null;
     isLoadingDetails.value = true;
+
     try {
       final response = await ApiService.getHospitalDetails(hospitalId);
+      if (currentGen != _detailsRequestGen) return;
+
       if (response['success'] == true && response['data'] != null) {
         final data = response['data'] as Map<String, dynamic>;
         currentHospital.value = Map<String, dynamic>.from(data['hospital'] as Map);
@@ -148,18 +167,24 @@ class PatientViewModel extends GetxController {
         doctors.assignAll(docList);
 
         // Default to first department if available
-        if (deptList.isNotEmpty) {
-          selectedDepartmentId.value = deptList.first['id'] as int?;
-        } else {
-          selectedDepartmentId.value = null;
-        }
+        final firstDeptId = deptList.isNotEmpty ? deptList.first['id'] as int? : null;
+        selectedDepartmentId.value = firstDeptId;
 
-        // Reset selected doctor
-        selectedDoctor.value = docList.isNotEmpty ? docList.first : null;
+        // Select an eligible (available) doctor belonging to the selected department
+        selectedDoctor.value = docList.firstWhereOrNull(
+          (d) => (firstDeptId == null || d['department_id'] == firstDeptId) && d['is_available'] == true,
+        );
+      } else {
+        currentHospital.value = null;
       }
     } catch (_) {
+      if (currentGen == _detailsRequestGen) {
+        currentHospital.value = null;
+      }
     } finally {
-      isLoadingDetails.value = false;
+      if (currentGen == _detailsRequestGen) {
+        isLoadingDetails.value = false;
+      }
     }
   }
 
@@ -174,6 +199,40 @@ class PatientViewModel extends GetxController {
   // Department chip selection handler
   void selectDepartment(int deptId) {
     selectedDepartmentId.value = deptId;
+    // Invalidate or update selected doctor if not belonging to chosen department
+    if (selectedDoctor.value != null && selectedDoctor.value?['department_id'] != deptId) {
+      selectedDoctor.value = doctors.firstWhereOrNull(
+        (d) => d['department_id'] == deptId && d['is_available'] == true,
+      );
+    }
+  }
+
+  // Refresh both master city catalog and active filtered hospitals
+  Future<void> refreshCatalog() async {
+    try {
+      final response = await ApiService.getPatientHospitals();
+      if (response['success'] == true) {
+        final list = (response['data'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        _masterHospitals.clear();
+        _masterHospitals.addAll(list);
+
+        final cities = list
+            .map((h) => h['city']?.toString().trim())
+            .where((c) => c != null && c.isNotEmpty)
+            .cast<String>()
+            .toSet()
+            .toList();
+        cities.sort();
+        availableCities.assignAll(['All', ...cities]);
+      }
+    } catch (_) {}
+
+    await Future.wait([
+      fetchHospitals(),
+      fetchActiveToken(),
+    ]);
   }
 
   // Select doctor for booking flow

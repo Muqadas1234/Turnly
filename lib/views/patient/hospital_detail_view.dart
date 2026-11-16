@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
 import '../../viewmodels/patient_viewmodel.dart';
 import '../../widgets/app_icon.dart';
 
@@ -91,6 +92,8 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
 
         final depts = _patientVm.departments;
         final filteredDoctors = _patientVm.filteredDoctors;
+        // Observe selected doctor ID inside the body Obx so list highlight updates immediately
+        final selectedDocId = _patientVm.selectedDoctor.value?['id'];
 
         return SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -277,7 +280,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
                     final doc = filteredDoctors[index];
-                    return _buildDoctorCard(doc);
+                    return _buildDoctorCard(doc, selectedDocId);
                   },
                 ),
             ],
@@ -302,7 +305,14 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
               height: 48,
               child: ElevatedButton(
                 onPressed: () {
-                  // Navigate to Screen 07: Book Token view
+                  Get.toNamed(
+                    AppRoutes.booking,
+                    arguments: {
+                      'doctor': doc,
+                      'hospital': _patientVm.currentHospital.value,
+                      'hospitalId': _resolvedHospitalId,
+                    },
+                  );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.adminPrimary,
@@ -343,7 +353,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
     );
   }
 
-  Widget _buildDoctorCard(Map<String, dynamic> doc) {
+  Widget _buildDoctorCard(Map<String, dynamic> doc, dynamic selectedDocId) {
     final name = doc['name'] ?? 'Doctor';
     final spec = doc['specialization'] ?? 'Specialist';
     final exp = int.tryParse(doc['experience_years']?.toString() ?? '0') ?? 0;
@@ -351,7 +361,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
     final hours = doc['availability_hours']?.toString() ?? 'Schedule not set';
     // Dynamic availability status from the database
     final isAvailable = doc['is_available'] == true;
-    final isSelected = _patientVm.selectedDoctor.value?['id'] == doc['id'];
+    final isSelected = selectedDocId != null && selectedDocId == doc['id'];
 
     final docWords = name.trim().split(RegExp(r'\s+'));
     final initials = docWords.length >= 2

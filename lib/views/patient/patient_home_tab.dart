@@ -34,8 +34,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            await _patientVm.fetchHospitals();
-            await _patientVm.fetchActiveToken();
+            await _patientVm.refreshCatalog();
           },
           color: AppColors.adminPrimary,
           child: SingleChildScrollView(
@@ -171,7 +170,11 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                           ),
                           selected: isSelected,
                           onSelected: (selected) {
-                            if (selected) _patientVm.setCityFilter(city);
+                            if (selected) {
+                              _searchController.clear();
+                              _patientVm.setCityFilter(city);
+                              setState(() {});
+                            }
                           },
                           selectedColor: AppColors.adminPrimary,
                           backgroundColor: AppColors.surface,
@@ -345,6 +348,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
     final city = hospital['city'] ?? '';
     final address = hospital['address'] ?? city;
     final timings = hospital['opd_timings'] ?? 'OPD 9AM-8PM';
+    final facilityType = hospital['type']?.toString() ?? 'Hospital';
     final doctorsCount = int.tryParse(hospital['doctors_count']?.toString() ?? '0') ?? 0;
     final hospitalId = int.tryParse(hospital['id']?.toString() ?? '0') ?? 0;
 
@@ -427,9 +431,9 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                           color: AppColors.adminApprovedBg,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          'Open now',
-                          style: TextStyle(
+                        child: Text(
+                          facilityType,
+                          style: const TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: AppColors.adminApprovedText,
