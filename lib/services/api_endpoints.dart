@@ -18,6 +18,11 @@ class ApiEndpoints {
   static String get loginUrl => '$baseUrl/auth/login';
   static String get profileUrl => '$baseUrl/auth/profile';
 
+  // Hospital Registration & Status Endpoints
+  static String get registerHospitalUrl => '$baseUrl/hospitals/register';
+  static String get resubmitHospitalUrl => '$baseUrl/hospitals/resubmit';
+  static String get myHospitalUrl => '$baseUrl/hospitals/my-hospital';
+
   // Admin Endpoints
   static String get adminHospitals => '$baseUrl/admin/hospitals';
   static String adminHospitalDetail(int id) => '$baseUrl/admin/hospitals/$id';
@@ -26,11 +31,7 @@ class ApiEndpoints {
   static String adminSuspendHospital(int id) => '$baseUrl/admin/hospitals/$id/suspend';
   static String get adminStats => '$baseUrl/admin/stats';
 
-
-  // Patient Endpoints
-  static String get patientHospitals => '$baseUrl/patient/hospitals';
-  static String get patientActiveToken => '$baseUrl/patient/active-token';
-  static String patientHospitalDetail(int id) => '$baseUrl/patient/hospitals/$id';
+  // Department Management Endpoints
+  static String get departmentsUrl => '$baseUrl/departments';
+  static String toggleDepartmentUrl(String id) => '$baseUrl/departments/$id/toggle';
 }
-
-

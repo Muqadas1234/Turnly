@@ -1,11 +1,27 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Main Theme Palette
   static const Color primary = Color(0xFF1A237E);
   static const Color primaryLight = Color(0xFF3949AB);
   static const Color primaryDark = Color(0xFF0D1642);
   static const Color primaryExtraLight = Color(0xFFE8EAF6);
+
+  // Manager / Hospital Onboarding & Status Teal Theme (M6-M11)
+  static const Color tealPrimary = Color(0xFF0F8C7C);
+  static const Color tealDark = Color(0xFF0B6E62);
+  static const Color tealLight = Color(0xFFE6F4F1);
+  static const Color tealBorder = Color(0xFF14B8A6);
+
+  static const Color infoBg = Color(0xFFEFF6FF);
+  static const Color infoBorder = Color(0xFFBFDBFE);
+  static const Color infoText = Color(0xFF1E40AF);
+
+  static const Color rejectedBg = Color(0xFFFEE2E2);
+  static const Color rejectedText = Color(0xFFDC2626);
+
+  static const Color suspendedBg = Color(0xFFFEF3C7);
+  static const Color suspendedBorder = Color(0xFFFDE68A);
+  static const Color suspendedText = Color(0xFFB45309);
 
   static const Color accent = Color(0xFF2979FF);
   static const Color accentLight = Color(0xFFBBDEFB);
@@ -51,6 +67,7 @@ class AppColors {
   static const Color adminPurple = Color(0xFF7C3AED);
   static const Color adminPurpleBg = Color(0xFFEDE9FE);
   static const Color adminOrange = Color(0xFFEA580C);
+
 
   static const LinearGradient primaryGradient = LinearGradient(
     begin: Alignment.topLeft,
