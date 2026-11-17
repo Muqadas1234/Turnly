@@ -73,7 +73,7 @@ class RoleSelectionView extends StatelessWidget {
                 subtitle: 'Register your hospital, manage\ndoctors & control queues.',
                 onTap: () {
                   Get.find<AuthViewModel>().selectedRole.value = 'manager';
-                  Get.toNamed(AppRoutes.managerDashboard);
+                  Get.toNamed(AppRoutes.registrationForm);
                 },
               ),
 
@@ -166,7 +166,11 @@ class _RoleCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.textHint),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.textHint,
+            ),
           ],
         ),
       ),

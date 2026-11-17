@@ -16,6 +16,9 @@ import '../views/patient/family_members_view.dart';
 import '../views/patient/profile_view.dart';
 import '../views/patient/ai_guide_view.dart';
 import '../views/manager/registration_form_view.dart';
+import '../views/manager/registration_rejected_view.dart';
+import '../views/manager/manage_departments_view.dart';
+import '../views/manager/hospital_suspended_view.dart';
 import '../views/manager/manager_dashboard_view.dart';
 import '../views/manager/doctor_management_view.dart';
 import '../views/manager/queue_control_view.dart';
@@ -39,6 +42,9 @@ class AppRoutes {
   static const profile = '/profile';
   static const aiGuide = '/ai-guide';
   static const registrationForm = '/registration-form';
+  static const registrationRejected = '/registration-rejected';
+  static const manageDepartments = '/manage-departments';
+  static const hospitalSuspended = '/hospital-suspended';
   static const managerDashboard = '/manager-dashboard';
   static const doctorManagement = '/doctor-management';
   static const queueControl = '/queue-control';
@@ -64,6 +70,9 @@ class AppPages {
     GetPage(name: AppRoutes.profile, page: () => const ProfileView()),
     GetPage(name: AppRoutes.aiGuide, page: () => const AiGuideView()),
     GetPage(name: AppRoutes.registrationForm, page: () => const RegistrationFormView()),
+    GetPage(name: AppRoutes.registrationRejected, page: () => const RegistrationRejectedView()),
+    GetPage(name: AppRoutes.manageDepartments, page: () => const ManageDepartmentsView()),
+    GetPage(name: AppRoutes.hospitalSuspended, page: () => const HospitalSuspendedView()),
     GetPage(name: AppRoutes.managerDashboard, page: () => const ManagerDashboardView()),
     GetPage(name: AppRoutes.doctorManagement, page: () => const DoctorManagementView()),
     GetPage(name: AppRoutes.queueControl, page: () => const QueueControlView()),

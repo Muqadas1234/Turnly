@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+
 import '../../utils/app_colors.dart';
-import '../../widgets/app_icon.dart';
+import 'alerts_view.dart';
 import 'my_tokens_view.dart';
 import 'patient_home_tab.dart';
 import 'profile_view.dart';
@@ -18,6 +19,7 @@ class _HomeViewState extends State<HomeView> {
   final List<Widget> _screens = const [
     PatientHomeTab(),
     MyTokensView(),
+    AlertsView(),
     ProfileView(),
   ];
 
@@ -29,52 +31,57 @@ class _HomeViewState extends State<HomeView> {
         children: _screens,
       ),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           color: AppColors.surface,
           border: Border(
             top: BorderSide(color: AppColors.border, width: 1),
           ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildNavItem(0, 'hospital', 'Home'),
-                _buildNavItem(1, 'ticket', 'My Tokens'),
-                _buildNavItem(2, 'user', 'Profile'),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: BottomNavigationBar(
+              currentIndex: _currentIndex,
+              onTap: (index) => setState(() => _currentIndex = index),
+              type: BottomNavigationBarType.fixed,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              selectedItemColor: AppColors.primary,
+              unselectedItemColor: AppColors.textHint,
+              selectedFontSize: 12,
+              unselectedFontSize: 12,
+              selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
+              items: const [
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.home_outlined),
+                  activeIcon: Icon(Icons.home_rounded),
+                  label: 'Home',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.confirmation_number_outlined),
+                  activeIcon: Icon(Icons.confirmation_number_rounded),
+                  label: 'My Tokens',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.notifications_none_rounded),
+                  activeIcon: Icon(Icons.notifications_rounded),
+                  label: 'Alerts',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.person_outline_rounded),
+                  activeIcon: Icon(Icons.person_rounded),
+                  label: 'Profile',
+                ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(int index, String iconName, String label) {
-    final isSelected = _currentIndex == index;
-    final color = isSelected ? AppColors.adminPrimary : AppColors.textHint;
-
-    return InkWell(
-      onTap: () => setState(() => _currentIndex = index),
-      borderRadius: BorderRadius.circular(12),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AppIcon(iconName, size: 22, color: color),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                color: color,
-              ),
-            ),
-          ],
         ),
       ),
     );
