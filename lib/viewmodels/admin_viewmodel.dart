@@ -1,26 +1,30 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../services/api_service.dart';
 
 class AdminViewModel extends GetxController {
   final isLoading = false.obs;
-  final selectedTab = 0.obs; // 0 = Approvals, 1 = Stats, 2 = Hospitals, 3 = Profile
+  final selectedTab = 0.obs; // Bottom nav index: 0 = Approvals, 1 = Stats, 2 = Hospitals, 3 = Profile
 
   // Filter chips: 'pending', 'approved', 'suspended'
   final selectedFilter = 'pending'.obs;
 
+  // Status counts
   final pendingCount = 0.obs;
   final approvedCount = 0.obs;
   final suspendedCount = 0.obs;
 
+  // Filtered hospitals list for Approvals tab
   final hospitals = <Map<String, dynamic>>[].obs;
+
+  // Dedicated list of all approved active hospitals
   final approvedHospitals = <Map<String, dynamic>>[].obs;
+
+  // Platform statistics
   final platformStats = <String, dynamic>{}.obs;
 
+  // Request generation counter to avoid race conditions when switching filters
   int _filterRequestGen = 0;
-  Timer? _poller;
 
   @override
   void onInit() {
@@ -28,28 +32,12 @@ class AdminViewModel extends GetxController {
     fetchHospitals();
     fetchApprovedHospitals();
     fetchStats();
-
-    // New registrations arrive while the admin has the app open:
-    // refresh the Approvals tab quietly every 15 seconds.
-    _poller = Timer.periodic(const Duration(seconds: 15), (_) {
-      if (selectedTab.value == 0 && !isLoading.value) {
-        fetchHospitals(silent: true);
-      }
-    });
   }
 
-  @override
-  void onClose() {
-    _poller?.cancel();
-    super.onClose();
-  }
-
-  int _toInt(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '') ?? 0;
-
-  // silent = true: background refresh, no spinner, no error snackbar
-  Future<void> fetchHospitals({String? status, bool silent = false}) async {
-    final currentGen = silent ? _filterRequestGen : ++_filterRequestGen;
-    if (!silent) isLoading.value = true;
+  // Fetch hospitals filtered by selected status for Approvals tab
+  Future<void> fetchHospitals({String? status}) async {
+    final currentGen = ++_filterRequestGen;
+    isLoading.value = true;
     final filter = status ?? selectedFilter.value;
 
     try {
@@ -62,28 +50,28 @@ class AdminViewModel extends GetxController {
             .toList();
         hospitals.assignAll(list);
 
+        // Update counts
         final counts = response['counts'] as Map? ?? {};
-        pendingCount.value = _toInt(counts['pending']);
-        approvedCount.value = _toInt(counts['approved']);
-        suspendedCount.value = _toInt(counts['suspended']);
+        pendingCount.value = counts['pending'] ?? 0;
+        approvedCount.value = counts['approved'] ?? 0;
+        suspendedCount.value = counts['suspended'] ?? 0;
       }
     } catch (_) {
       if (currentGen != _filterRequestGen) return;
-      if (!silent) {
-        Get.snackbar(
-          'Error',
-          'Failed to fetch hospital registrations',
-          backgroundColor: Colors.red.shade50,
-          colorText: Colors.red.shade800,
-        );
-      }
+      Get.snackbar(
+        'Error',
+        'Failed to fetch hospital registrations',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
     } finally {
-      if (!silent && currentGen == _filterRequestGen) {
+      if (currentGen == _filterRequestGen) {
         isLoading.value = false;
       }
     }
   }
 
+  // Fetch all approved hospitals for Manage Hospitals tab and Stats preview
   Future<void> fetchApprovedHospitals() async {
     try {
       final response = await ApiService.getAdminHospitals(status: 'approved');
@@ -96,11 +84,13 @@ class AdminViewModel extends GetxController {
     } catch (_) {}
   }
 
+  // Change filter chip in Approvals tab
   void setFilter(String status) {
     selectedFilter.value = status;
     fetchHospitals(status: status);
   }
 
+  // Approve a hospital
   Future<bool> approveHospital(int hospitalId) async {
     try {
       final response = await ApiService.approveHospital(hospitalId);
@@ -115,14 +105,15 @@ class AdminViewModel extends GetxController {
         fetchApprovedHospitals();
         fetchStats();
         return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to approve hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
-      Get.snackbar(
-        'Error',
-        response['message'] ?? 'Failed to approve hospital',
-        backgroundColor: Colors.red.shade50,
-        colorText: Colors.red.shade800,
-      );
-      return false;
     } catch (_) {
       Get.snackbar(
         'Error',
@@ -134,6 +125,7 @@ class AdminViewModel extends GetxController {
     }
   }
 
+  // Reject a hospital
   Future<bool> rejectHospital(int hospitalId, {String? reason}) async {
     try {
       final response = await ApiService.rejectHospital(hospitalId, rejectionNote: reason);
@@ -148,14 +140,15 @@ class AdminViewModel extends GetxController {
         fetchApprovedHospitals();
         fetchStats();
         return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to reject hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
-      Get.snackbar(
-        'Error',
-        response['message'] ?? 'Failed to reject hospital',
-        backgroundColor: Colors.red.shade50,
-        colorText: Colors.red.shade800,
-      );
-      return false;
     } catch (_) {
       Get.snackbar(
         'Error',
@@ -167,6 +160,7 @@ class AdminViewModel extends GetxController {
     }
   }
 
+  // Suspend an approved hospital
   Future<bool> suspendHospital(int hospitalId) async {
     try {
       final response = await ApiService.suspendHospital(hospitalId);
@@ -181,14 +175,15 @@ class AdminViewModel extends GetxController {
         fetchApprovedHospitals();
         fetchStats();
         return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to suspend hospital',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
       }
-      Get.snackbar(
-        'Error',
-        response['message'] ?? 'Failed to suspend hospital',
-        backgroundColor: Colors.red.shade50,
-        colorText: Colors.red.shade800,
-      );
-      return false;
     } catch (_) {
       Get.snackbar(
         'Error',
@@ -200,6 +195,7 @@ class AdminViewModel extends GetxController {
     }
   }
 
+  // Fetch platform statistics
   Future<void> fetchStats() async {
     try {
       final response = await ApiService.getPlatformStats();

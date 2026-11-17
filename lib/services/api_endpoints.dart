@@ -34,4 +34,9 @@ class ApiEndpoints {
   // Department Management Endpoints
   static String get departmentsUrl => '$baseUrl/departments';
   static String toggleDepartmentUrl(String id) => '$baseUrl/departments/$id/toggle';
+
+  // Patient Endpoints
+  static String get patientHospitals => '$baseUrl/patient/hospitals';
+  static String get patientActiveToken => '$baseUrl/patient/active-token';
+  static String patientHospitalDetail(int id) => '$baseUrl/patient/hospitals/$id';
 }
