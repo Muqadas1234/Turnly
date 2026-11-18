@@ -39,4 +39,10 @@ class ApiEndpoints {
   static String get patientHospitals => '$baseUrl/patient/hospitals';
   static String get patientActiveToken => '$baseUrl/patient/active-token';
   static String patientHospitalDetail(int id) => '$baseUrl/patient/hospitals/$id';
+
+
+
+  // Token Booking & Queue Preview Endpoints
+  static String get bookTokenUrl => '$baseUrl/patient/tokens/book';
+  static String doctorQueueStatus(int id) => '$baseUrl/patient/doctors/$id/queue-status';
 }

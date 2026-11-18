@@ -335,4 +335,45 @@ class ApiService {
     );
     return jsonDecode(response.body);
   }
+
+  // Book a new token for a doctor
+  static Future<Map<String, dynamic>> bookToken({
+    required int doctorId,
+    required int hospitalId,
+    int? departmentId,
+    String? patientName,
+    String? bookingDate,
+  }) async {
+    final token = await getToken();
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.bookTokenUrl),
+      headers: {
+        'Content-Type': 'application/json',
+        if (token != null) 'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode({
+        'doctorId': doctorId,
+        'hospitalId': hospitalId,
+        if (departmentId != null) 'departmentId': departmentId,
+        if (patientName != null && patientName.trim().isNotEmpty) 'patientName': patientName.trim(),
+        if (bookingDate != null && bookingDate.trim().isNotEmpty) 'bookingDate': bookingDate.trim(),
+      }),
+    );
+    return jsonDecode(response.body);
+  }
+
+  // Fetch preview of doctor's queue status
+  static Future<Map<String, dynamic>> getDoctorQueueStatus(int doctorId, {String? date}) async {
+    final queryParams = <String, String>{};
+    if (date != null && date.trim().isNotEmpty) {
+      queryParams['date'] = date.trim();
+    }
+
+    final uri = Uri.parse(ApiEndpoints.doctorQueueStatus(doctorId)).replace(
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+
+    final response = await http.get(uri);
+    return jsonDecode(response.body);
+  }
 }
