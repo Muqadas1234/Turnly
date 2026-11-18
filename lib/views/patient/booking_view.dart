@@ -91,6 +91,9 @@ class _BookingViewState extends State<BookingView> {
       return;
     }
 
+    final bookingDate = _selectedDate;
+    final formattedDate = DateFormat('yyyy-MM-dd').format(bookingDate);
+
     setState(() => _isSubmitting = true);
 
     try {
@@ -99,16 +102,18 @@ class _BookingViewState extends State<BookingView> {
         hospitalId: hospId,
         departmentId: deptId,
         patientName: patientName,
-        bookingDate: DateFormat('yyyy-MM-dd').format(_selectedDate),
+        bookingDate: formattedDate,
       );
 
       if (response['success'] == true) {
         // Refresh active token in PatientViewModel
         await _patientVm.fetchActiveToken();
+        if (!mounted) return;
         final tokenData = response['data'] as Map? ?? {};
         final tokenNum = tokenData['token_number'] ?? 1;
-        _showSuccess(tokenNum, patientName);
+        _showSuccess(tokenNum, patientName, bookingDate);
       } else {
+        if (!mounted) return;
         Get.snackbar(
           'Booking Failed',
           response['message'] ?? 'Unable to book token',
@@ -119,6 +124,7 @@ class _BookingViewState extends State<BookingView> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       Get.snackbar(
         'Connection Error',
         'Could not reach server: $e',
@@ -132,7 +138,7 @@ class _BookingViewState extends State<BookingView> {
     }
   }
 
-  void _showSuccess(dynamic tokenNum, String patientName) {
+  void _showSuccess(dynamic tokenNum, String patientName, DateTime confirmedDate) {
     Get.dialog(
       Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -165,7 +171,7 @@ class _BookingViewState extends State<BookingView> {
               ),
               const SizedBox(height: 16),
               Text(
-                DateFormat('EEE, d MMM yyyy').format(_selectedDate),
+                DateFormat('EEE, d MMM yyyy').format(confirmedDate),
                 style: const TextStyle(fontSize: 13, color: AppColors.textHint),
               ),
               const SizedBox(height: 24),
@@ -381,15 +387,22 @@ class _BookingViewState extends State<BookingView> {
               ),
             ),
             const SizedBox(height: 12),
-            Row(
+            Wrap(
+              spacing: 10,
+              runSpacing: 8,
               children: [
                 ChoiceChip(
-                  label: Text('Myself ($myName)'),
+                  label: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 180),
+                    child: Text(
+                      'Myself ($myName)',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                   selected: _isForMyself,
                   selectedColor: AppColors.adminPrimaryLight,
                   onSelected: (_) => setState(() => _isForMyself = true),
                 ),
-                const SizedBox(width: 10),
                 ChoiceChip(
                   label: const Text('Family / Other'),
                   selected: !_isForMyself,
