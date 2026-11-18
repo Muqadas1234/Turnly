@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/patient_viewmodel.dart';
 import '../../widgets/app_icon.dart';
+import '../../utils/routes.dart';
 
 class HospitalDetailView extends StatefulWidget {
   final int? hospitalId;
@@ -303,16 +304,23 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
               width: double.infinity,
               height: 48,
               child: ElevatedButton(
-                // Booking navigation is deferred until Screen 07 booking flow is implemented
-                onPressed: null,
+                onPressed: () {
+                  Get.toNamed(
+                    AppRoutes.booking,
+                    arguments: {
+                      'doctor': doc,
+                      'hospital': _patientVm.currentHospital.value,
+                      'hospitalId': _resolvedHospitalId,
+                    },
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.adminPrimary,
-                  disabledBackgroundColor: AppColors.border,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
                 child: Text(
                   'Book with ${doc['name'] ?? 'Doctor'}',
-                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.textSecondary),
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
               ),
             ),
