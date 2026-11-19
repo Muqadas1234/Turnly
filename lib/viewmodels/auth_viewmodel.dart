@@ -1,6 +1,9 @@
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:turnly/viewmodels/manager_viewmodel.dart';
+import 'manager_viewmodel.dart';
+
 
 import '../services/api_service.dart';
 import '../utils/routes.dart';
@@ -160,7 +163,7 @@ class AuthViewModel extends GetxController {
         _rememberUser(response['user']);
 
         final role = response['user']['role'];
-        _navigateToHome(role);
+        await _navigateToHome(role);
       } else {
         if (response['requiresVerification'] == true) {
           Get.snackbar(
@@ -203,7 +206,7 @@ class AuthViewModel extends GetxController {
       if (response['success'] == true) {
         await ApiService.saveUserData(response['user']);
         _rememberUser(response['user']);
-        _navigateToHome(response['user']['role']);
+       await _navigateToHome(response['user']['role']);
       } else {
         await ApiService.clearAll();
         Get.offAllNamed(AppRoutes.roleSelection);
@@ -233,12 +236,17 @@ class AuthViewModel extends GetxController {
   }
 
   Future<void> logout() async {
+    if (Get.isRegistered<ManagerViewModel>()) {
+      final managerVm = Get.find<ManagerViewModel>();
+      managerVm.stopStatusPolling();
+      managerVm.currentHospital.value = null;
+      managerVm.isResubmitting.value = false;
+    }
     await ApiService.clearAll();
     currentUser.value = null;
     selectedRole.value = '';
     Get.offAllNamed(AppRoutes.roleSelection);
   }
-
   // void _navigateToHome(dynamic role) {
   //   final userRole = role?.toString();
   //   if (userRole == 'admin') {
@@ -250,23 +258,28 @@ class AuthViewModel extends GetxController {
   //   }
   // }
 
-  void _navigateToHome(dynamic role) {
-    final userRole = role?.toString();
+  Future<void> _navigateToHome(dynamic role) async {
+    final userRole = role?.toString().trim().toLowerCase();
     if (userRole == 'admin') {
       Get.offAllNamed(AppRoutes.adminPanel);
     } else if (userRole == 'manager') {
-      // Check if the manager already has a hospital linked to their account
-      final hasHospital = currentUser.value?['hospital_id'] != null ||
-          currentUser.value?['hospital'] != null;
+      final managerVm = Get.isRegistered<ManagerViewModel>()
+          ? Get.find<ManagerViewModel>()
+          : Get.put(ManagerViewModel());
 
-      if (hasHospital) {
-        Get.offAllNamed(AppRoutes.managerDashboard);
-      } else {
-        Get.offAllNamed(AppRoutes.registrationForm);
-      }
+      // Backend se fresh hospital status check karke exact screen par bhejega
+      await managerVm.loadMyHospital(routeByStatus: true);
     } else {
       Get.offAllNamed(AppRoutes.home);
     }
   }
+
+
+
+
+
+
+
+
 
 }

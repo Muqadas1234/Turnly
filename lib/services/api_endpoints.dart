@@ -36,4 +36,5 @@ class ApiEndpoints {
   // Department Management Endpoints
   static String get departmentsUrl => '$baseUrl/departments';
   static String toggleDepartmentUrl(String id) => '$baseUrl/departments/$id/toggle';
+  static String get queueStatsUrl => '$baseUrl/api/queue/stats';
 }

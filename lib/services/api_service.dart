@@ -293,4 +293,30 @@ class ApiService {
       };
     }
   }
+
+  // Update hospital details / OPD timings (PATCH /api/hospitals/my-hospital)
+  static Future<Map<String, dynamic>> updateMyHospital(
+      Map<String, dynamic> payload,
+      ) async {
+    final headers = await _authHeaders();
+    final response = await http.patch(
+      Uri.parse(ApiEndpoints.myHospitalUrl),
+      headers: headers,
+      body: jsonEncode(payload),
+    );
+    return _decode(response);
+  }
+
+  // Fetch manager dashboard live stats & today's queues (GET /api/queue/stats)
+  static Future<Map<String, dynamic>> getManagerDashboard({String? date}) async {
+    final headers = await _authHeaders();
+    final baseUri = Uri.parse(ApiEndpoints.myHospitalUrl);
+    final uri = baseUri.replace(
+      path: '/api/queue/stats',
+      queryParameters: (date != null && date.isNotEmpty) ? {'date': date} : null,
+    );
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+
 }
