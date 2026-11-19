@@ -1,10 +1,14 @@
 import 'package:flutter/foundation.dart';
-
 class ApiEndpoints {
-  // Base URL for Localhost
-  // Android Emulator: 10.0.2.2:3000
-  // Web / Desktop / iOS: localhost:3000
+  // Set to true for Live Vercel Server, false for Localhost testing
+  static const bool isProduction = true;
+
   static String get baseUrl {
+    if (isProduction) {
+      return 'https://turnly-backend.vercel.app/api';
+    }
+
+    // Localhost fallback
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3000/api';
     }
