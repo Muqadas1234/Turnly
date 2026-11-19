@@ -1,9 +1,14 @@
 import 'package:flutter/foundation.dart';
 class ApiEndpoints {
-  // Set to true for Live Vercel Server, false for Localhost testing
-  static const bool isProduction = true;
+  // Load environment configuration with production as the default
+  static const bool isProduction = bool.fromEnvironment('IS_PRODUCTION', defaultValue: true);
+  static const String _configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
 
   static String get baseUrl {
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _configuredBaseUrl;
+    }
+
     if (isProduction) {
       return 'https://turnly-backend.vercel.app/api';
     }
