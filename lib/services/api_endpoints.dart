@@ -1,10 +1,19 @@
 import 'package:flutter/foundation.dart';
-
 class ApiEndpoints {
-  // Base URL for Localhost
-  // Android Emulator: 10.0.2.2:3000
-  // Web / Desktop / iOS: localhost:3000
+  // Load environment configuration with production as the default
+  static const bool isProduction = bool.fromEnvironment('IS_PRODUCTION', defaultValue: true);
+  static const String _configuredBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
+
   static String get baseUrl {
+    if (_configuredBaseUrl.isNotEmpty) {
+      return _configuredBaseUrl;
+    }
+
+    if (isProduction) {
+      return 'https://turnly-backend.vercel.app/api';
+    }
+
+    // Localhost fallback
     if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.0.2.2:3000/api';
     }
@@ -39,4 +48,10 @@ class ApiEndpoints {
   static String get patientHospitals => '$baseUrl/patient/hospitals';
   static String get patientActiveToken => '$baseUrl/patient/active-token';
   static String patientHospitalDetail(int id) => '$baseUrl/patient/hospitals/$id';
+
+
+
+  // Token Booking & Queue Preview Endpoints
+  static String get bookTokenUrl => '$baseUrl/patient/tokens/book';
+  static String doctorQueueStatus(int id) => '$baseUrl/patient/doctors/$id/queue-status';
 }

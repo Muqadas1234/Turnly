@@ -5,6 +5,7 @@ import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/patient_viewmodel.dart';
 import '../../widgets/app_icon.dart';
 import 'hospital_detail_view.dart';
+import 'my_token_view.dart';
 
 class PatientHomeTab extends StatefulWidget {
   const PatientHomeTab({super.key});
@@ -289,55 +290,59 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
     final aheadCount = int.tryParse(token['ahead_count']?.toString() ?? '0') ?? 0;
     final waitMin = int.tryParse(token['estimated_wait_minutes']?.toString() ?? '20') ?? 20;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.adminPrimary,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'YOUR ACTIVE TOKEN',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white70,
-                    letterSpacing: 0.8,
+    return InkWell(
+      onTap: () => Get.to(() => const MyTokenView()),
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.adminPrimary,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'YOUR ACTIVE TOKEN',
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white70,
+                      letterSpacing: 0.8,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Token #$tokenNumber · Dr. $doctorName',
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
+                  const SizedBox(height: 6),
+                  Text(
+                    'Token #$tokenNumber · Dr. $doctorName',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '$aheadCount patients ahead · ~$waitMin min wait',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '$aheadCount patients ahead · ~$waitMin min wait',
+                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  ),
+                ],
+              ),
             ),
-          ),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              shape: BoxShape.circle,
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const AppIcon('arrow-right', color: Colors.white, size: 18),
             ),
-            child: const AppIcon('arrow-right', color: Colors.white, size: 18),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
