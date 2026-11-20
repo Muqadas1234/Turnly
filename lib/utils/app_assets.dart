@@ -1,0 +1,29 @@
+class AppAssets {
+  static const String homeIcon = "assets/icons/home.svg";
+  static const String hospitalIcon = "assets/icons/hospital.svg";
+  static const String ticketIcon = "assets/icons/ticket.svg";
+  static const String userIcon = "assets/icons/user.svg";
+  static const String usersIcon = "assets/icons/users.svg";
+  static const String searchIcon = "assets/icons/search.svg";
+  static const String bellIcon = "assets/icons/bell.svg";
+  static const String calendarIcon = "assets/icons/calendar.svg";
+  static const String clockIcon = "assets/icons/clock.svg";
+  static const String clockPendingIcon = "assets/icons/clock_pending.svg";
+  static const String mapPinIcon = "assets/icons/map-pin.svg";
+  static const String filterIcon = "assets/icons/sliders-horizontal.svg";
+  static const String shieldCheckIcon = "assets/icons/shield_check.svg";
+  static const String barChartIcon = "assets/icons/bar_chart.svg";
+  static const String activityIcon = "assets/icons/activity.svg";
+  static const String documentIcon = "assets/icons/document.svg";
+  static const String uploadIcon = "assets/icons/upload.svg";
+  static const String mailIcon = "assets/icons/mail.svg";
+  static const String logoutIcon = "assets/icons/logout.svg";
+  static const String banIcon = "assets/icons/ban.svg";
+  static const String checkIcon = "assets/icons/check.svg";
+  static const String checkCircleIcon = "assets/icons/check_circle.svg";
+  static const String closeIcon = "assets/icons/x.svg";
+  static const String backArrowIcon = "assets/icons/arrow_left.svg";
+  static const String nextArrowIcon = "assets/icons/arrow-right.svg";
+  static const String chevronDownIcon = "assets/icons/chevron-down.svg";
+  static const String chevronRightIcon = "assets/icons/chevron-right.svg";
+}

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:custom_sliding_segmented_control/custom_sliding_segmented_control.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
 import '../../widgets/custom_button.dart';
 import 'my_token_view.dart';
 
@@ -14,6 +17,8 @@ class MyTokensView extends StatefulWidget {
 
 class _MyTokensViewState extends State<MyTokensView> {
   int _selectedTab = 0;
+  // Set to false to show Empty State (matching mockup design), or true to show active tokens list
+  final bool _hasActiveTokens = false;
 
   @override
   Widget build(BuildContext context) {
@@ -75,47 +80,51 @@ class _MyTokensViewState extends State<MyTokensView> {
 
               // Tab Content
               if (_selectedTab == 0) ...[
-                // Token Card 1: #12
-                _buildActiveTokenCard(
-                  tokenNumber: '#12',
-                  status: 'Waiting',
-                  statusColor: AppColors.adminPrimaryDark,
-                  statusBg: AppColors.adminPrimaryLight,
-                  doctorName: 'Dr. Ahmed Raza · Cardiology',
-                  patientName: 'For Ayesha Khan (you)',
-                  hospital: 'City General Hospital',
-                  queueInfo: 'Today · 3 patients ahead · ~25 min',
-                ),
-                const SizedBox(height: 16),
-
-                // Token Card 2: #7
-                _buildActiveTokenCard(
-                  tokenNumber: '#7',
-                  status: 'Serving',
-                  statusColor: AppColors.adminBlue,
-                  statusBg: AppColors.adminBlueBg,
-                  doctorName: 'Dr. Hina Qureshi · Pediatrics',
-                  patientName: 'For Sara Khan (daughter)',
-                  hospital: 'Aga Khan University Hospital',
-                  queueInfo: 'Today · Being served now',
-                ),
-                const SizedBox(height: 24),
-
-                // Recent History Section
-                const Text(
-                  'Recent history',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
+                if (!_hasActiveTokens)
+                  _buildEmptyState()
+                else ...[
+                  // Token Card 1: #12
+                  _buildActiveTokenCard(
+                    tokenNumber: '#12',
+                    status: 'Waiting',
+                    statusColor: AppColors.adminPrimaryDark,
+                    statusBg: AppColors.adminPrimaryLight,
+                    doctorName: 'Dr. Ahmed Raza · Cardiology',
+                    patientName: 'For Ayesha Khan (you)',
+                    hospital: 'City General Hospital',
+                    queueInfo: 'Today · 3 patients ahead · ~25 min',
                   ),
-                ),
-                const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                _buildHistoryItem(
-                  doctorName: 'Dr. Bilal Shah · ENT',
-                  dateInfo: '10 Nov · Token #5',
-                ),
+                  // Token Card 2: #7
+                  _buildActiveTokenCard(
+                    tokenNumber: '#7',
+                    status: 'Serving',
+                    statusColor: AppColors.adminBlue,
+                    statusBg: AppColors.adminBlueBg,
+                    doctorName: 'Dr. Hina Qureshi · Pediatrics',
+                    patientName: 'For Sara Khan (daughter)',
+                    hospital: 'Aga Khan University Hospital',
+                    queueInfo: 'Today · Being served now',
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Recent History Section
+                  const Text(
+                    'Recent history',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  _buildHistoryItem(
+                    doctorName: 'Dr. Bilal Shah · ENT',
+                    dateInfo: '10 Nov · Token #5',
+                  ),
+                ],
               ] else ...[
                 // Full History List
                 _buildHistoryItem(
@@ -360,6 +369,74 @@ class _MyTokensViewState extends State<MyTokensView> {
           ),
         ],
       ),
+    );
+  }
+
+  // Empty State Widget (When no active tokens)
+  Widget _buildEmptyState() {
+    return Column(
+      children: [
+        const SizedBox(height: 70),
+
+        // Big Circular Avatar with Ticket Icon
+        Container(
+          width: 96,
+          height: 96,
+          decoration: const BoxDecoration(
+            color: AppColors.adminPrimaryLight,
+            shape: BoxShape.circle,
+          ),
+          alignment: Alignment.center,
+          child: SvgPicture.asset(
+            AppAssets.ticketIcon,
+            width: 44,
+            height: 44,
+            colorFilter: const ColorFilter.mode(
+              AppColors.adminPrimary,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+
+        // Title
+        const Text(
+          'No active tokens',
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Subtitle Description
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24),
+          child: Text(
+            'Book a token from home and skip the waiting room. Your live queue position will show up here.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.45,
+              color: AppColors.textSecondary,
+            ),
+          ),
+        ),
+        const SizedBox(height: 80),
+
+        // Find a Hospital Button
+        CustomButton(
+          label: 'Find a hospital',
+          height: 48,
+          backgroundColor: AppColors.adminPrimary,
+          textColor: AppColors.surface,
+          onPressed: () {
+            Get.offAllNamed(AppRoutes.home);
+          },
+        ),
+        const SizedBox(height: 20),
+      ],
     );
   }
 

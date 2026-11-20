@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/patient_viewmodel.dart';
-import '../../widgets/app_icon.dart';
 import 'hospital_detail_view.dart';
 import 'my_token_view.dart';
 
@@ -79,7 +80,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                         border: Border.all(color: AppColors.border),
                       ),
                       child: const Center(
-                        child: AppIcon('bell', size: 20, color: AppColors.textPrimary),
+                        child: Icon(Icons.notifications_none_outlined, size: 20, color: AppColors.textPrimary),
                       ),
                     ),
                   ],
@@ -108,11 +109,11 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                             hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 13),
                             prefixIcon: const Padding(
                               padding: EdgeInsets.all(12),
-                              child: AppIcon('search', size: 18, color: AppColors.textHint),
+                              child: Icon(Icons.search, size: 18, color: AppColors.textHint),
                             ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const AppIcon('x', size: 16, color: AppColors.textHint),
+                                    icon: const Icon(Icons.close, size: 16, color: AppColors.textHint),
                                     onPressed: () {
                                       _searchController.clear();
                                       _patientVm.search('');
@@ -135,7 +136,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Center(
-                        child: AppIcon('sliders-horizontal', color: AppColors.surface, size: 20),
+                        child: Icon(Icons.tune, color: AppColors.surface, size: 20),
                       ),
                     ),
                   ],
@@ -248,7 +249,12 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                       ),
                       child: Column(
                         children: [
-                          const AppIcon('hospital', size: 36, color: AppColors.textHint),
+                          SvgPicture.asset(
+                            AppAssets.hospitalIcon,
+                            width: 36,
+                            height: 36,
+                            colorFilter: const ColorFilter.mode(AppColors.textHint, BlendMode.srcIn),
+                          ),
                           const SizedBox(height: 10),
                           Text(
                             emptyMsg,
@@ -339,7 +345,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const AppIcon('arrow-right', color: Colors.white, size: 18),
+              child: const Icon(Icons.arrow_forward, color: Colors.white, size: 18),
             ),
           ],
         ),
@@ -413,7 +419,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                   const SizedBox(height: 4),
                   Row(
                     children: [
-                      const AppIcon('map-pin', size: 14, color: AppColors.textSecondary),
+                      const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
@@ -474,7 +480,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
               ),
             ),
             const SizedBox(width: 8),
-            const AppIcon('chevron-right', color: AppColors.textHint, size: 20),
+            const Icon(Icons.chevron_right, color: AppColors.textHint, size: 20),
           ],
         ),
       ),
