@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
@@ -27,6 +28,17 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   void initState() {
     super.initState();
     _email = Get.arguments?['email'] ?? '';
+    if (_email.isEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Get.snackbar(
+          'Email Required',
+          'Please enter your email to request a reset code first.',
+          backgroundColor: Colors.orange.shade50,
+          colorText: Colors.orange.shade800,
+        );
+        Get.offNamed(AppRoutes.forgotPassword);
+      });
+    }
   }
 
   @override
@@ -38,6 +50,17 @@ class _ResetPasswordViewState extends State<ResetPasswordView> {
   }
 
   void _submit() {
+    if (_email.isEmpty) {
+      Get.snackbar(
+        'Email Required',
+        'Please start from the forgot password screen.',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      Get.offNamed(AppRoutes.forgotPassword);
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       Get.find<AuthViewModel>().resetPassword(
         email: _email,

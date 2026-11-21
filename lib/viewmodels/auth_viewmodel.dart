@@ -258,7 +258,10 @@ class AuthViewModel extends GetxController {
           backgroundColor: Colors.green.shade50,
           colorText: Colors.green.shade800,
         );
-        Get.toNamed(AppRoutes.resetPassword, arguments: {'email': email});
+        // Only navigate if user is still on the forgot-password screen
+        if (Get.currentRoute == AppRoutes.forgotPassword) {
+          Get.toNamed(AppRoutes.resetPassword, arguments: {'email': email});
+        }
       } else {
         Get.snackbar(
           'Error',
@@ -284,10 +287,22 @@ class AuthViewModel extends GetxController {
     required String otpCode,
     required String newPassword,
   }) async {
+    final trimmedEmail = email.trim();
+    if (trimmedEmail.isEmpty) {
+      Get.snackbar(
+        'Error',
+        'Email is required. Please request a new reset code.',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      Get.offNamed(AppRoutes.forgotPassword);
+      return;
+    }
+
     isLoading.value = true;
     try {
       final response = await ApiService.resetPassword(
-        email: email,
+        email: trimmedEmail,
         otpCode: otpCode,
         newPassword: newPassword,
       );

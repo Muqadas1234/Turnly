@@ -43,13 +43,13 @@ class _ForgotPasswordViewState extends State<ForgotPasswordView> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 16),
-                IconButton(
-                  onPressed: () => Get.back(),
+                Obx(() => IconButton(
+                  onPressed: authVm.isLoading.value ? null : () => Get.back(),
                   icon: const Icon(Icons.arrow_back_rounded),
                   style: IconButton.styleFrom(
                     backgroundColor: Colors.grey.shade100,
                   ),
-                ),
+                )),
                 const SizedBox(height: 32),
                 const Text(
                   'Forgot Password?',
