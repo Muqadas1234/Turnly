@@ -86,8 +86,8 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
               const SizedBox(height: 12),
               Text(
                 _userName.isNotEmpty
-                    ? 'Great, $_userName! Your account is verified.\nPlease log in to access your dashboard.'
-                    : 'Your account is verified!\nPlease log in to continue.',
+                    ? 'Great, $_userName! Your account is verified.\nWelcome to Turnly!'
+                    : 'Your account is verified!\nWelcome to Turnly!',
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 15,
@@ -99,8 +99,8 @@ class _OtpSuccessViewState extends State<OtpSuccessView>
 
               // reusable custom button
               CustomButton(
-                label: 'Go to Log in',
-                onPressed: () => Get.offAllNamed(AppRoutes.login),
+                label: 'Get Started',
+                onPressed: () => Get.offAllNamed(AppRoutes.home),
               ),
               const SizedBox(height: 32),
             ],

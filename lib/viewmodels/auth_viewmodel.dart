@@ -26,6 +26,24 @@ class AuthViewModel extends GetxController {
     }
   }
 
+  // Persist session and route user to their respective dashboard
+  Future<void> _handleAuthSuccess(Map<String, dynamic> response) async {
+    final token = response['token'];
+    final user = response['user'];
+
+    if (token != null) {
+      await ApiService.saveToken(token.toString());
+    }
+    if (user is Map) {
+      final userMap = Map<String, dynamic>.from(user);
+      await ApiService.saveUserData(userMap);
+      _rememberUser(userMap);
+      _navigateToHome(userMap['role']);
+    } else {
+      _navigateToHome(selectedRole.value);
+    }
+  }
+
   Future<void> signup({
     required String name,
     required String email,
@@ -77,11 +95,11 @@ class AuthViewModel extends GetxController {
       );
 
       if (response['success'] == true) {
-        Get.offAllNamed(AppRoutes.otpSuccess);
+        await _handleAuthSuccess(response);
       } else {
         Get.snackbar(
           'Error',
-          response['message'] ?? 'Invalid code',
+          response['message'] ?? 'Verification failed. Try again',
           backgroundColor: Colors.red.shade50,
           colorText: Colors.red.shade800,
         );
@@ -141,29 +159,22 @@ class AuthViewModel extends GetxController {
       );
 
       if (response['success'] == true) {
-        await ApiService.saveToken(response['token']);
-        await ApiService.saveUserData(response['user']);
-        _rememberUser(response['user']);
-
-        final role = response['user']['role'];
-        _navigateToHome(role);
+        await _handleAuthSuccess(response);
+      } else if (response['requiresVerification'] == true) {
+        Get.snackbar(
+          'Verification Required',
+          'Please verify your email first',
+          backgroundColor: Colors.orange.shade50,
+          colorText: Colors.orange.shade800,
+        );
+        Get.toNamed(AppRoutes.otp, arguments: {'email': email});
       } else {
-        if (response['requiresVerification'] == true) {
-          Get.snackbar(
-            'Verification Required',
-            'Please verify your email first',
-            backgroundColor: Colors.orange.shade50,
-            colorText: Colors.orange.shade800,
-          );
-          Get.toNamed(AppRoutes.otp, arguments: {'email': email});
-        } else {
-          Get.snackbar(
-            'Error',
-            response['message'] ?? 'Invalid credentials',
-            backgroundColor: Colors.red.shade50,
-            colorText: Colors.red.shade800,
-          );
-        }
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Invalid credentials',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
       }
     } catch (_) {
       Get.snackbar(
@@ -226,13 +237,11 @@ class AuthViewModel extends GetxController {
   }
 
   void _navigateToHome(dynamic role) {
-    final roleStr = role?.toString().toLowerCase().trim();
-    if (roleStr == 'admin') {
-      Get.offAllNamed(AppRoutes.adminPanel);
-    } else if (roleStr == 'manager') {
-      Get.offAllNamed(AppRoutes.managerDashboard);
-    } else {
-      Get.offAllNamed(AppRoutes.home);
-    }
+    final route = switch (role?.toString().toLowerCase().trim()) {
+      'admin' => AppRoutes.adminPanel,
+      'manager' => AppRoutes.managerDashboard,
+      _ => AppRoutes.home,
+    };
+    Get.offAllNamed(route);
   }
 }

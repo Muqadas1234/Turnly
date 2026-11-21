@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/patient_viewmodel.dart';
-import '../../widgets/app_icon.dart';
 import '../../utils/routes.dart';
 
 class HospitalDetailView extends StatefulWidget {
@@ -59,7 +58,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const AppIcon('arrow_left', size: 20, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, size: 20, color: AppColors.textPrimary),
           onPressed: () => Get.back(),
         ),
         title: const Text(
@@ -141,7 +140,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const AppIcon('map-pin', size: 14, color: AppColors.textSecondary),
+                                  const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
@@ -163,7 +162,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                                 child: const Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    AppIcon('shield_check', size: 12, color: AppColors.adminApprovedText),
+                                    Icon(Icons.verified_user_outlined, size: 12, color: AppColors.adminApprovedText),
                                     SizedBox(width: 4),
                                     Text(
                                       'Approved by Turnly',
@@ -189,8 +188,8 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildQuickSpec('clock', timings, 'OPD timings'),
-                        _buildQuickSpec('users', '$doctorsCount', 'Doctors'),
+                        _buildQuickSpec(Icons.access_time, timings, 'OPD timings'),
+                        _buildQuickSpec(Icons.people_outline, '$doctorsCount', 'Doctors'),
                       ],
                     ),
                   ],
@@ -336,13 +335,13 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
     return dept != null ? dept['name'] : 'Department';
   }
 
-  Widget _buildQuickSpec(String iconName, String title, String subtitle) {
+  Widget _buildQuickSpec(IconData icon, String title, String subtitle) {
     return Column(
       children: [
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(iconName, size: 14, color: AppColors.adminPrimary),
+            Icon(icon, size: 14, color: AppColors.adminPrimary),
             const SizedBox(width: 4),
             Text(title, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
           ],
@@ -420,7 +419,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                   // Dynamic schedule from database (set by hospital manager)
                   Row(
                     children: [
-                      const AppIcon('clock', size: 11, color: AppColors.textHint),
+                      const Icon(Icons.access_time, size: 11, color: AppColors.textHint),
                       const SizedBox(width: 3),
                       Flexible(
                         child: Text(

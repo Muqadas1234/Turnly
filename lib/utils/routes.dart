@@ -10,6 +10,7 @@ import '../views/patient/home_view.dart';
 import '../views/patient/hospital_detail_view.dart';
 import '../views/patient/doctor_list_view.dart';
 import '../views/patient/booking_view.dart';
+import '../views/patient/token_confirmation_view.dart';
 import '../views/patient/my_tokens_view.dart';
 import '../views/patient/my_token_view.dart';
 import '../views/patient/family_members_view.dart';
@@ -36,6 +37,7 @@ class AppRoutes {
   static const hospitalDetail = '/hospital-detail';
   static const doctorList = '/doctor-list';
   static const booking = '/booking';
+  static const tokenConfirmation = '/token-confirmation';
   static const myTokens = '/my-tokens';
   static const myToken = '/my-token';
   static const familyMembers = '/family-members';
@@ -64,6 +66,7 @@ class AppPages {
     GetPage(name: AppRoutes.hospitalDetail, page: () => const HospitalDetailView()),
     GetPage(name: AppRoutes.doctorList, page: () => const DoctorListView()),
     GetPage(name: AppRoutes.booking, page: () => const BookingView()),
+    GetPage(name: AppRoutes.tokenConfirmation, page: () => const TokenConfirmationView()),
     GetPage(name: AppRoutes.myTokens, page: () => const MyTokensView()),
     GetPage(name: AppRoutes.myToken, page: () => const MyTokenView()),
     GetPage(name: AppRoutes.familyMembers, page: () => const FamilyMembersView()),

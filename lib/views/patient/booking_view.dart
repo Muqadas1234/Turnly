@@ -5,8 +5,7 @@ import '../../utils/app_colors.dart';
 import '../../services/api_service.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/patient_viewmodel.dart';
-import '../../widgets/app_icon.dart';
-import '../../utils/routes.dart';
+import 'token_confirmation_view.dart';
 
 class BookingView extends StatefulWidget {
   const BookingView({super.key});
@@ -109,9 +108,10 @@ class _BookingViewState extends State<BookingView> {
         // Refresh active token in PatientViewModel
         await _patientVm.fetchActiveToken();
         if (!mounted) return;
-        final tokenData = response['data'] as Map? ?? {};
-        final tokenNum = tokenData['token_number'] ?? 1;
-        _showSuccess(tokenNum, patientName, bookingDate);
+        setState(() => _isSubmitting = false);
+        // Navigate to dedicated confirmation screen
+        Get.to(() => const TokenConfirmationView());
+        return;
       } else {
         if (!mounted) return;
         Get.snackbar(
@@ -136,69 +136,6 @@ class _BookingViewState extends State<BookingView> {
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
-  }
-
-  void _showSuccess(dynamic tokenNum, String patientName, DateTime confirmedDate) {
-    Get.dialog(
-      Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 60,
-                height: 60,
-                decoration: const BoxDecoration(
-                  color: AppColors.adminApprovedBg,
-                  shape: BoxShape.circle,
-                ),
-                child: const Center(
-                  child: AppIcon('check', size: 30, color: AppColors.adminApprovedText),
-                ),
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Token Confirmed!',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Token #$tokenNum booked for $patientName',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: AppColors.textSecondary),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                DateFormat('EEE, d MMM yyyy').format(confirmedDate),
-                style: const TextStyle(fontSize: 13, color: AppColors.textHint),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                height: 44,
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Cleanly close dialog and return to previous screen without race conditions
-                    Get.until((route) => route.settings.name == AppRoutes.hospitalDetail || route.isFirst);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.adminPrimary,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      barrierDismissible: false,
-    );
   }
 
   // Opens date picker dialog allowing selection up to 30 days ahead
@@ -238,9 +175,11 @@ class _BookingViewState extends State<BookingView> {
     final target = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
     final diff = target.difference(today).inDays;
 
-    if (diff == 0) return 'Today';
-    if (diff == 1) return 'Tomorrow';
-    return 'In $diff days';
+    return switch (diff) {
+      0 => 'Today',
+      1 => 'Tomorrow',
+      _ => 'In $diff days',
+    };
   }
 
   @override
@@ -257,7 +196,7 @@ class _BookingViewState extends State<BookingView> {
         backgroundColor: AppColors.surface,
         elevation: 0,
         leading: IconButton(
-          icon: const AppIcon('arrow_left', size: 20, color: AppColors.textPrimary),
+          icon: const Icon(Icons.arrow_back, size: 20, color: AppColors.textPrimary),
           onPressed: () => Get.back(),
         ),
         title: const Text(
@@ -348,7 +287,7 @@ class _BookingViewState extends State<BookingView> {
                 ),
                 child: Row(
                   children: [
-                    const AppIcon('calendar', size: 20, color: AppColors.adminPrimary),
+                    const Icon(Icons.calendar_today_outlined, size: 20, color: AppColors.adminPrimary),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
@@ -370,7 +309,7 @@ class _BookingViewState extends State<BookingView> {
                         ],
                       ),
                     ),
-                    const AppIcon('chevron-down', size: 16, color: AppColors.textSecondary),
+                    const Icon(Icons.keyboard_arrow_down, size: 18, color: AppColors.textSecondary),
                   ],
                 ),
               ),

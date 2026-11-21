@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
-import '../../widgets/app_icon.dart';
 import 'my_tokens_view.dart';
 import 'patient_home_tab.dart';
 import 'profile_view.dart';
@@ -41,9 +42,9 @@ class _HomeViewState extends State<HomeView> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _buildNavItem(0, 'hospital', 'Home'),
-                _buildNavItem(1, 'ticket', 'My Tokens'),
-                _buildNavItem(2, 'user', 'Profile'),
+                _buildNavItem(0, AppAssets.hospitalIcon, 'Home'),
+                _buildNavItem(1, AppAssets.ticketIcon, 'My Tokens'),
+                _buildNavItem(2, AppAssets.userIcon, 'Profile'),
               ],
             ),
           ),
@@ -52,7 +53,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildNavItem(int index, String iconName, String label) {
+  Widget _buildNavItem(int index, String assetPath, String label) {
     final isSelected = _currentIndex == index;
     final color = isSelected ? AppColors.adminPrimary : AppColors.textHint;
 
@@ -64,7 +65,12 @@ class _HomeViewState extends State<HomeView> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            AppIcon(iconName, size: 22, color: color),
+            SvgPicture.asset(
+              assetPath,
+              width: 22,
+              height: 22,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
             const SizedBox(height: 4),
             Text(
               label,

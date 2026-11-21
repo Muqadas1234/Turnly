@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 import '../../viewmodels/auth_viewmodel.dart';
-import '../../widgets/app_icon.dart';
 import 'platform_stats_view.dart';
 import 'review_registration_view.dart';
 
@@ -47,23 +46,23 @@ class AdminPanelView extends StatelessWidget {
             elevation: 8,
             items: const [
               BottomNavigationBarItem(
-                icon: AppIcon('shield_check', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('shield_check', size: 22, color: AppColors.adminPrimary),
+                icon: Icon(Icons.verified_user_outlined, size: 22, color: AppColors.textSecondary),
+                activeIcon: Icon(Icons.verified_user, size: 22, color: AppColors.adminPrimary),
                 label: 'Approvals',
               ),
               BottomNavigationBarItem(
-                icon: AppIcon('bar_chart', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('bar_chart', size: 22, color: AppColors.adminPrimary),
+                icon: Icon(Icons.bar_chart_outlined, size: 22, color: AppColors.textSecondary),
+                activeIcon: Icon(Icons.bar_chart, size: 22, color: AppColors.adminPrimary),
                 label: 'Stats',
               ),
               BottomNavigationBarItem(
-                icon: AppIcon('hospital', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('hospital', size: 22, color: AppColors.adminPrimary),
+                icon: Icon(Icons.local_hospital_outlined, size: 22, color: AppColors.textSecondary),
+                activeIcon: Icon(Icons.local_hospital, size: 22, color: AppColors.adminPrimary),
                 label: 'Hospitals',
               ),
               BottomNavigationBarItem(
-                icon: AppIcon('user', size: 22, color: AppColors.textSecondary),
-                activeIcon: AppIcon('user', size: 22, color: AppColors.adminPrimary),
+                icon: Icon(Icons.person_outline, size: 22, color: AppColors.textSecondary),
+                activeIcon: Icon(Icons.person, size: 22, color: AppColors.adminPrimary),
                 label: 'Profile',
               ),
             ],
@@ -115,7 +114,7 @@ class AdminPanelView extends StatelessWidget {
                       border: Border.all(color: AppColors.border),
                     ),
                     child: IconButton(
-                      icon: const AppIcon('bell', size: 20, color: AppColors.textPrimary),
+                      icon: const Icon(Icons.notifications_none_outlined, size: 20, color: AppColors.textPrimary),
                       onPressed: () {},
                     ),
                   ),
@@ -316,7 +315,7 @@ class AdminPanelView extends StatelessWidget {
             // Manager info
             Row(
               children: [
-                const AppIcon('user', size: 16, color: AppColors.textSecondary),
+                const Icon(Icons.person_outline, size: 16, color: AppColors.textSecondary),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -336,7 +335,7 @@ class AdminPanelView extends StatelessWidget {
             // Submitted time
             const Row(
               children: [
-                AppIcon('clock', size: 16, color: AppColors.textSecondary),
+                Icon(Icons.access_time, size: 16, color: AppColors.textSecondary),
                 SizedBox(width: 6),
                 Expanded(
                   child: Text(
@@ -396,7 +395,7 @@ class AdminPanelView extends StatelessWidget {
                         child: const Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            AppIcon('check', size: 16, color: AppColors.surface),
+                            Icon(Icons.check, size: 16, color: AppColors.surface),
                             SizedBox(width: 6),
                             FittedBox(
                               fit: BoxFit.scaleDown,
@@ -427,7 +426,7 @@ class AdminPanelView extends StatelessWidget {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      AppIcon('ban', size: 16, color: AppColors.adminSuspendedText),
+                      Icon(Icons.block, size: 16, color: AppColors.adminSuspendedText),
                       SizedBox(width: 6),
                       Text(
                         'Suspend hospital',
@@ -537,7 +536,7 @@ class AdminPanelView extends StatelessWidget {
             const CircleAvatar(
               radius: 40,
               backgroundColor: AppColors.adminPrimary,
-              child: AppIcon('shield_check', size: 38, color: AppColors.surface),
+              child: Icon(Icons.verified_user_outlined, size: 38, color: AppColors.surface),
             ),
             const SizedBox(height: 16),
             const Text(
@@ -565,7 +564,7 @@ class AdminPanelView extends StatelessWidget {
                 child: const Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    AppIcon('logout', size: 18, color: AppColors.surface),
+                    Icon(Icons.logout, size: 18, color: AppColors.surface),
                     SizedBox(width: 8),
                     Text('Log out'),
                   ],

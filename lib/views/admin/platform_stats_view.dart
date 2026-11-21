@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
-import '../../widgets/app_icon.dart';
 
 class PlatformStatsView extends StatelessWidget {
   const PlatformStatsView({super.key});
@@ -69,7 +68,7 @@ class PlatformStatsView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _buildMetricCard(
-                            iconName: 'hospital',
+                            icon: Icons.local_hospital_outlined,
                             iconColor: AppColors.adminPrimary,
                             iconBg: AppColors.adminPrimaryLight,
                             value: '$totalHospitals',
@@ -79,7 +78,7 @@ class PlatformStatsView extends StatelessWidget {
                         const SizedBox(width: 14),
                         Expanded(
                           child: _buildMetricCard(
-                            iconName: 'activity',
+                            icon: Icons.trending_up,
                             iconColor: AppColors.adminBlue,
                             iconBg: AppColors.adminBlueBg,
                             value: '$activeQueues',
@@ -93,7 +92,7 @@ class PlatformStatsView extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _buildMetricCard(
-                            iconName: 'ticket',
+                            icon: Icons.confirmation_number_outlined,
                             iconColor: AppColors.adminPendingText,
                             iconBg: AppColors.adminPendingBg,
                             value: '$tokensToday',
@@ -103,7 +102,7 @@ class PlatformStatsView extends StatelessWidget {
                         const SizedBox(width: 14),
                         Expanded(
                           child: _buildMetricCard(
-                            iconName: 'users',
+                            icon: Icons.people_outline,
                             iconColor: AppColors.adminPurple,
                             iconBg: AppColors.adminPurpleBg,
                             value: totalPatients >= 1000
@@ -312,7 +311,7 @@ class PlatformStatsView extends StatelessWidget {
                         child: const Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            AppIcon('ban', size: 14, color: AppColors.adminSuspendedText),
+                            Icon(Icons.block, size: 14, color: AppColors.adminSuspendedText),
                             SizedBox(width: 4),
                             Text(
                               'Suspend',
@@ -359,7 +358,7 @@ class PlatformStatsView extends StatelessWidget {
 
   // Metric card widget
   Widget _buildMetricCard({
-    required String iconName,
+    required IconData icon,
     required Color iconColor,
     required Color iconBg,
     required String value,
@@ -381,7 +380,7 @@ class PlatformStatsView extends StatelessWidget {
               color: iconBg,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: AppIcon(iconName, color: iconColor, size: 20),
+            child: Icon(icon, color: iconColor, size: 20),
           ),
           const SizedBox(height: 16),
           Text(
