@@ -244,4 +244,79 @@ class AuthViewModel extends GetxController {
     };
     Get.offAllNamed(route);
   }
+
+
+
+  Future<void> forgotPassword(String email) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.forgotPassword(email);
+      if (response['success'] == true) {
+        Get.snackbar(
+          'Code Sent',
+          response['message'] ?? 'Reset code sent to your email',
+          backgroundColor: Colors.green.shade50,
+          colorText: Colors.green.shade800,
+        );
+        Get.toNamed(AppRoutes.resetPassword, arguments: {'email': email});
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Could not send reset code',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Network error. Please try again',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  Future<void> resetPassword({
+    required String email,
+    required String otpCode,
+    required String newPassword,
+  }) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.resetPassword(
+        email: email,
+        otpCode: otpCode,
+        newPassword: newPassword,
+      );
+
+      if (response['success'] == true) {
+        Get.snackbar(
+          'Success',
+          'Password reset successfully! Please log in.',
+          backgroundColor: Colors.green.shade50,
+          colorText: Colors.green.shade800,
+        );
+        Get.offAllNamed(AppRoutes.login);
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to reset password',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Network error. Please try again',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
 }
