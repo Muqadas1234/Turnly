@@ -376,4 +376,33 @@ class ApiService {
     final response = await http.get(uri);
     return jsonDecode(response.body);
   }
+
+
+  // Request password reset OTP
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.forgotPasswordUrl),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'email': email.trim()}),
+    );
+    return _decode(response);
+  }
+
+  // Reset password using the received OTP code
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otpCode,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.resetPasswordUrl),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        'email': email.trim(),
+        'otp_code': otpCode.trim(),
+        'new_password': newPassword,
+      }),
+    );
+    return _decode(response);
+  }
 }
