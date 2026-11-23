@@ -54,4 +54,8 @@ class ApiEndpoints {
   // Token Booking & Queue Preview Endpoints
   static String get bookTokenUrl => '$baseUrl/patient/tokens/book';
   static String doctorQueueStatus(int id) => '$baseUrl/patient/doctors/$id/queue-status';
+
+
+  static String get forgotPasswordUrl => '$baseUrl/auth/forgot-password';
+  static String get resetPasswordUrl => '$baseUrl/auth/reset-password';
 }
