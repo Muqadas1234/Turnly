@@ -334,8 +334,7 @@ class AuthViewModel extends GetxController {
   }
 
   // Edit profile - saves user's new name in backend.
-
-  Future<void> updateProfileName(String newName) async {
+  Future<bool> updateProfileName(String newName) async {
     isLoading.value = true;
     try {
       final response = await ApiService.updateProfile(name: newName);
@@ -346,17 +345,10 @@ class AuthViewModel extends GetxController {
         updatedUser['name'] = newName;
         currentUser.value = updatedUser;
 
-        //  updated user details to local storage
+        // Persist updated user details to local storage
         await ApiService.saveUserData(updatedUser);
 
-        // Return to profile view and notify the user
-        Get.back();
-        Get.snackbar(
-          'Success',
-          'Profile updated successfully!',
-          backgroundColor: Colors.green.shade50,
-          colorText: Colors.green.shade800,
-        );
+        return true;
       } else {
         Get.snackbar(
           'Error',
@@ -364,6 +356,7 @@ class AuthViewModel extends GetxController {
           backgroundColor: Colors.red.shade50,
           colorText: Colors.red.shade800,
         );
+        return false;
       }
     } catch (e) {
       Get.snackbar(
@@ -372,6 +365,7 @@ class AuthViewModel extends GetxController {
         backgroundColor: Colors.red.shade50,
         colorText: Colors.red.shade800,
       );
+      return false;
     } finally {
       isLoading.value = false;
     }

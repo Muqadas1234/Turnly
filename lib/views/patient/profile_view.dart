@@ -28,173 +28,8 @@ class _ProfileViewState extends State<ProfileView> {
 
   // Bottom sheet for editing profile name
   void _showEditProfileSheet() {
-    final authVm = Get.find<AuthViewModel>();
-    final nameController = TextEditingController(
-      text: authVm.currentUser.value?['name']?.toString() ?? '',
-    );
-    final email = authVm.currentUser.value?['email']?.toString() ?? '';
-
     Get.bottomSheet(
-      StatefulBuilder(
-        builder: (context, setStateModal) {
-          return Container(
-            padding: EdgeInsets.only(
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-
-                  // Header with Icon & Close
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryExtraLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.person_outline_rounded,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Update your display name',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Get.back(),
-                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Full Name Input
-                  const Text(
-                    'Full Name',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: nameController,
-                    textCapitalization: TextCapitalization.words,
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Enter your name',
-                      hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-                      prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary, size: 20),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Email (read-only display)
-                  const Text(
-                    'Email',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.border),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.mail_outline_rounded, color: AppColors.textHint, size: 20),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            email,
-                            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
-                          ),
-                        ),
-                        const Icon(Icons.lock_outline_rounded, color: AppColors.textHint, size: 16),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Save Button
-                  Obx(() => CustomButton(
-                    label: 'Save Changes',
-                    isLoading: authVm.isLoading.value,
-                    onPressed: () async {
-                      final newName = nameController.text.trim();
-                      if (newName.isEmpty) {
-                        Get.snackbar('Error', 'Name cannot be empty');
-                        return;
-                      }
-                      await authVm.updateProfileName(newName);
-                    },
-                  )),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+      const _EditProfileBottomSheet(),
       isScrollControlled: true,
     );
   }
@@ -435,6 +270,209 @@ class _ProfileViewState extends State<ProfileView> {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Dedicated StatefulWidget for the Edit Profile bottom sheet to properly manage and dispose controllers
+class _EditProfileBottomSheet extends StatefulWidget {
+  const _EditProfileBottomSheet();
+
+  @override
+  State<_EditProfileBottomSheet> createState() => _EditProfileBottomSheetState();
+}
+
+class _EditProfileBottomSheetState extends State<_EditProfileBottomSheet> {
+  late final TextEditingController _nameController;
+  final AuthViewModel _authVm = Get.find<AuthViewModel>();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(
+      text: _authVm.currentUser.value?['name']?.toString() ?? '',
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final newName = _nameController.text.trim();
+    if (newName.isEmpty) {
+      Get.snackbar('Error', 'Name cannot be empty');
+      return;
+    }
+
+    final success = await _authVm.updateProfileName(newName);
+
+    // Only close this bottom sheet if still mounted and current route
+    if (success && mounted) {
+      Navigator.of(context).pop();
+      Get.snackbar(
+        'Success',
+        'Profile updated successfully!',
+        backgroundColor: Colors.green.shade50,
+        colorText: Colors.green.shade800,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final email = _authVm.currentUser.value?['email']?.toString() ?? '';
+
+    return Container(
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
+            // Header with Icon & Close
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryExtraLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Edit Profile',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Update your display name',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Full Name Input
+            const Text(
+              'Full Name',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.words,
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter your name',
+                hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary, size: 20),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Email (read-only display)
+            const Text(
+              'Email',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.mail_outline_rounded, color: AppColors.textHint, size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      email,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                    ),
+                  ),
+                  const Icon(Icons.lock_outline_rounded, color: AppColors.textHint, size: 16),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Save Button
+            Obx(() => CustomButton(
+              label: 'Save Changes',
+              isLoading: _authVm.isLoading.value,
+              onPressed: _handleSave,
+            )),
           ],
         ),
       ),

@@ -9,223 +9,8 @@ class SettingsView extends StatelessWidget {
 
   // Modern modal sheet for Change Password
   void _showChangePasswordSheet(BuildContext context) {
-    final currentPassController = TextEditingController();
-    final newPassController = TextEditingController();
-    final authVm = Get.find<AuthViewModel>();
-    bool obscureCurrent = true;
-    bool obscureNew = true;
-
     Get.bottomSheet(
-      StatefulBuilder(
-        builder: (context, setStateModal) {
-          return Container(
-            padding: EdgeInsets.only(
-              top: 20,
-              left: 20,
-              right: 20,
-              bottom: MediaQuery.of(context).viewInsets.bottom + 24,
-            ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag Handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                    ),
-                  ),
-
-                  // Header with Icon & Close
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryExtraLight,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.lock_reset_rounded,
-                          color: AppColors.primary,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Change Password',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Update your account security',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () => Get.back(),
-                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Current Password Input
-                  const Text(
-                    'Current Password',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: currentPassController,
-                    obscureText: obscureCurrent,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    autofillHints: const [],
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Enter current password',
-                      hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-                      prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textSecondary, size: 20),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: AppColors.textHint,
-                          size: 20,
-                        ),
-                        onPressed: () => setStateModal(() => obscureCurrent = !obscureCurrent),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // New Password Input
-                  const Text(
-                    'New Password',
-                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 6),
-                  TextField(
-                    controller: newPassController,
-                    obscureText: obscureNew,
-                    autocorrect: false,
-                    enableSuggestions: false,
-                    autofillHints: const [],
-                    style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
-                    decoration: InputDecoration(
-                      hintText: 'Enter new password (min 6 chars)',
-                      hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
-                      prefixIcon: const Icon(Icons.key_outlined, color: AppColors.textSecondary, size: 20),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                          color: AppColors.textHint,
-                          size: 20,
-                        ),
-                        onPressed: () => setStateModal(() => obscureNew = !obscureNew),
-                      ),
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.border),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Submit Button
-                  Obx(() => CustomButton(
-                    label: 'Update Password',
-                    isLoading: authVm.isLoading.value,
-                    onPressed: () async {
-                      final currentPass = currentPassController.text.trim();
-                      final newPass = newPassController.text.trim();
-
-                      if (currentPass.isEmpty || newPass.isEmpty) {
-                        Get.snackbar('Error', 'Both password fields are required');
-                        return;
-                      }
-
-                      if (newPass.length < 6) {
-                        Get.snackbar('Error', 'New password must be at least 6 characters');
-                        return;
-                      }
-
-                      final success = await authVm.changePassword(
-                        currentPassword: currentPass,
-                        newPassword: newPass,
-                      );
-
-                      if (success) {
-                        // Close the bottom sheet first
-                        Get.back();
-                        // Show success snackbar after sheet is closed so it stays visible
-                        Future.delayed(const Duration(milliseconds: 300), () {
-                          Get.snackbar(
-                            'Success',
-                            'Password changed successfully!',
-                            backgroundColor: Colors.green.shade50,
-                            colorText: Colors.green.shade800,
-                          );
-                        });
-                      }
-                    },
-                  )),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+      const _ChangePasswordBottomSheet(),
       isScrollControlled: true,
     );
   }
@@ -637,6 +422,247 @@ class SettingsView extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Dedicated StatefulWidget for Change Password bottom sheet to manage controller lifecycle and route-safe pop
+class _ChangePasswordBottomSheet extends StatefulWidget {
+  const _ChangePasswordBottomSheet();
+
+  @override
+  State<_ChangePasswordBottomSheet> createState() => _ChangePasswordBottomSheetState();
+}
+
+class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> {
+  late final TextEditingController _currentPassController;
+  late final TextEditingController _newPassController;
+  final AuthViewModel _authVm = Get.find<AuthViewModel>();
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPassController = TextEditingController();
+    _newPassController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _currentPassController.dispose();
+    _newPassController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSubmit() async {
+    final currentPass = _currentPassController.text.trim();
+    final newPass = _newPassController.text.trim();
+
+    if (currentPass.isEmpty || newPass.isEmpty) {
+      Get.snackbar('Error', 'Both password fields are required');
+      return;
+    }
+
+    if (newPass.length < 6) {
+      Get.snackbar('Error', 'New password must be at least 6 characters');
+      return;
+    }
+
+    final success = await _authVm.changePassword(
+      currentPassword: currentPass,
+      newPassword: newPass,
+    );
+
+    // Only close this bottom sheet if still mounted and current route
+    if (success && mounted) {
+      Navigator.of(context).pop();
+      Future.delayed(const Duration(milliseconds: 300), () {
+        Get.snackbar(
+          'Success',
+          'Password changed successfully!',
+          backgroundColor: Colors.green.shade50,
+          colorText: Colors.green.shade800,
+        );
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.only(
+        top: 20,
+        left: 20,
+        right: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+      ),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Drag Handle
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+
+            // Header with Icon & Close
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryExtraLight,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.lock_reset_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Change Password',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Update your account security',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Current Password Input
+            const Text(
+              'Current Password',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _currentPassController,
+              obscureText: _obscureCurrent,
+              autocorrect: false,
+              enableSuggestions: false,
+              autofillHints: const [],
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter current password',
+                hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                prefixIcon: const Icon(Icons.lock_outline_rounded, color: AppColors.textSecondary, size: 20),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureCurrent ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: AppColors.textHint,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscureCurrent = !_obscureCurrent),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // New Password Input
+            const Text(
+              'New Password',
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _newPassController,
+              obscureText: _obscureNew,
+              autocorrect: false,
+              enableSuggestions: false,
+              autofillHints: const [],
+              style: const TextStyle(fontSize: 15, color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Enter new password (min 6 chars)',
+                hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
+                prefixIcon: const Icon(Icons.key_outlined, color: AppColors.textSecondary, size: 20),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureNew ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                    color: AppColors.textHint,
+                    size: 20,
+                  ),
+                  onPressed: () => setState(() => _obscureNew = !_obscureNew),
+                ),
+                filled: true,
+                fillColor: const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.border),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Submit Button
+            Obx(() => CustomButton(
+              label: 'Update Password',
+              isLoading: _authVm.isLoading.value,
+              onPressed: _handleSubmit,
+            )),
           ],
         ),
       ),
