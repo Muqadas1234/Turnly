@@ -331,5 +331,87 @@ class AuthViewModel extends GetxController {
     } finally {
       isLoading.value = false;
     }
+
+
+  }
+
+  //edit-profile- it will save user's new name in backend.
+
+  Future<void> updateProfileName(String newName) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.updateProfile(name: newName);
+
+      if (response['success'] == true) {
+        // 1. Update the local reactive state with the new name
+        final updatedUser = Map<String, dynamic>.from(currentUser.value ?? {});
+        updatedUser['name'] = newName;
+        currentUser.value = updatedUser;
+
+        //  updated user details to local storage
+        await ApiService.saveUserData(updatedUser);
+
+        // Return to profile view and notify the user
+        Get.back();
+        Get.snackbar(
+          'Success',
+          'Profile updated successfully!',
+          backgroundColor: Colors.green.shade50,
+          colorText: Colors.green.shade800,
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Could not update name',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Change password method
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      if (response['success'] == true) {
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to change password',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Network error. Please try again',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
   }
 }

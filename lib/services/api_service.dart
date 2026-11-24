@@ -127,20 +127,7 @@ class ApiService {
     return _decode(response);
   }
 
-  // update profile details
-  static Future<Map<String, dynamic>> updateProfile({
-    String? name,
-  }) async {
-    final headers = await _authHeaders();
-    final response = await http.put(
-      Uri.parse(ApiEndpoints.profileUrl),
-      headers: headers,
-      body: jsonEncode({
-        if (name != null) 'name': name,
-      }),
-    );
-    return _decode(response);
-  }
+
 
   // --- Hospital Registration & Status ---
 
@@ -399,6 +386,38 @@ class ApiService {
       body: jsonEncode({
         'email': email.trim(),
         'otp_code': otpCode.trim(),
+        'new_password': newPassword,
+      }),
+    );
+    return _decode(response);
+  }
+
+  // Update profile details
+  static Future<Map<String, dynamic>> updateProfile({
+    String? name,
+  }) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse(ApiEndpoints.profileUrl),
+      headers: headers,
+      body: jsonEncode({
+        if (name != null) 'name': name,
+      }),
+    );
+    return _decode(response);
+  }
+
+  // Send password change request to backend
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse(ApiEndpoints.changePasswordUrl),
+      headers: headers,
+      body: jsonEncode({
+        'current_password': currentPassword,
         'new_password': newPassword,
       }),
     );
