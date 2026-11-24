@@ -171,9 +171,7 @@ class _LoginViewState extends State<LoginView> {
                 Align(
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
-                    onTap: () {
-                      Get.toNamed(AppRoutes.forgotPassword);
-                    },
+                    onTap: () => Get.toNamed(AppRoutes.forgotPassword),
                     child: const Text(
                       'Forgot password?',
                       style: TextStyle(

@@ -59,8 +59,6 @@ class ApiEndpoints {
   static String get forgotPasswordUrl => '$baseUrl/auth/forgot-password';
   static String get resetPasswordUrl => '$baseUrl/auth/reset-password';
 
-
-//  static String get profileUrl => '$baseUrl/auth/profile';
-
+  // Change Password Endpoint
   static String get changePasswordUrl => '$baseUrl/auth/change-password';
 }

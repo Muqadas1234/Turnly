@@ -331,11 +331,9 @@ class AuthViewModel extends GetxController {
     } finally {
       isLoading.value = false;
     }
-
-
   }
 
-  //edit-profile- it will save user's new name in backend.
+  // Edit profile - saves user's new name in backend.
 
   Future<void> updateProfileName(String newName) async {
     isLoading.value = true;
