@@ -25,6 +25,8 @@ import '../views/manager/doctor_management_view.dart';
 import '../views/manager/queue_control_view.dart';
 import '../views/admin/admin_panel_view.dart';
 import '../views/admin/platform_stats_view.dart';
+import '../views/auth/forgot_password_view.dart';
+import '../views/auth/reset_password_view.dart';
 
 class AppRoutes {
   static const splash = '/splash';
@@ -52,6 +54,8 @@ class AppRoutes {
   static const queueControl = '/queue-control';
   static const adminPanel = '/admin-panel';
   static const platformStats = '/platform-stats';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
 }
 
 class AppPages {
@@ -81,5 +85,7 @@ class AppPages {
     GetPage(name: AppRoutes.queueControl, page: () => const QueueControlView()),
     GetPage(name: AppRoutes.adminPanel, page: () => const AdminPanelView()),
     GetPage(name: AppRoutes.platformStats, page: () => const PlatformStatsView()),
+    GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
+    GetPage(name: AppRoutes.resetPassword, page: () => const ResetPasswordView()),
   ];
 }

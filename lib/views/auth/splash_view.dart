@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 
@@ -66,13 +68,16 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                   width: 100,
                   height: 100,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(24),
                   ),
-                  child: const Icon(
-                    Icons.confirmation_number_rounded,
-                    size: 56,
-                    color: Colors.white,
+                  child: Center(
+                    child: SvgPicture.asset(
+                      AppAssets.ticketIcon,
+                      width: 52,
+                      height: 52,
+                      colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -91,7 +96,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     fontSize: 14,
-                    color: Colors.white.withOpacity(0.8),
+                    color: Colors.white.withValues(alpha: 0.8),
                     height: 1.5,
                   ),
                 ),
@@ -101,7 +106,7 @@ class _SplashViewState extends State<SplashView> with SingleTickerProviderStateM
                   height: 24,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.5,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
                 ),
               ],

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -10,6 +11,19 @@ import '../utils/routes.dart';
 class ManagerViewModel extends GetxController {
   final isLoading = false.obs;
   final errorMessage = ''.obs;
+  Timer? _statusTimer;
+
+  void startStatusPolling() {
+    if (_statusTimer != null && _statusTimer!.isActive) return;
+    _statusTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      await loadMyHospital(routeByStatus: true);
+    });
+  }
+
+  void stopStatusPolling() {
+    _statusTimer?.cancel();
+    _statusTimer = null;
+  }
 
   // --- Hospital Registration (Steps 1-4) ---
   final currentStep = 1.obs;

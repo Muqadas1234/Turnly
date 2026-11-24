@@ -33,6 +33,7 @@ dependencies:
   flutter_svg: ^2.0.10+1
   easy_stepper: ^1.2.0
   custom_sliding_segmented_control: ^1.8.5
+  web_socket_channel: ^3.0.3
 
 dev_dependencies:
   flutter_test:
