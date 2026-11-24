@@ -459,8 +459,8 @@ class _ChangePasswordBottomSheetState extends State<_ChangePasswordBottomSheet> 
   }
 
   Future<void> _handleSubmit() async {
-    final currentPass = _currentPassController.text.trim();
-    final newPass = _newPassController.text.trim();
+    final currentPass = _currentPassController.text;
+    final newPass = _newPassController.text;
 
     if (currentPass.isEmpty || newPass.isEmpty) {
       Get.snackbar('Error', 'Both password fields are required');
