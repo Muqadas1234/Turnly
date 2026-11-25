@@ -1,3 +1,5 @@
+import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -316,11 +318,11 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
         Obx(() {
           final hasLogo = vm.logoFileName.value.isNotEmpty;
           return GestureDetector(
-            onTap: () => _showFilePickerSheet(
+            onTap: () => _pickFileFromDevice(
               title: 'Upload hospital logo',
-              defaultName: 'cgh_logo.png',
-              defaultSize: '420 KB',
-              onSelected: (name, size) => vm.attachLogo(name: name, size: size),
+              onSelected: (name, size, base64, mimeType) {
+                vm.attachLogo(name: name, size: size, base64: base64);
+              },
             ),
             child: CustomPaint(
               painter: _DashedBorderPainter(
@@ -393,13 +395,18 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
             title: 'Hospital license',
             subtitle: uploaded
                 ? '${vm.licenseDocName.value} · ${vm.licenseDocSize.value}'
-                : 'Required · PDF or image',
+                : 'Required · PDF or image (max 2 MB)',
             isUploaded: uploaded,
-            onTap: () => _showFilePickerSheet(
+            onTap: () => _pickFileFromDevice(
               title: 'Upload hospital license',
-              defaultName: 'license_cgh.pdf',
-              defaultSize: '1.2 MB',
-              onSelected: (name, size) => vm.attachLicense(name: name, size: size),
+              onSelected: (name, size, base64, mimeType) {
+                vm.attachLicense(
+                  name: name,
+                  size: size,
+                  base64: base64,
+                  mimeType: mimeType,
+                );
+              },
             ),
           );
         }),
@@ -412,13 +419,13 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
             title: 'Registration certificate',
             subtitle: uploaded
                 ? '${vm.certificateDocName.value} · ${vm.certificateDocSize.value}'
-                : 'Required · PDF or image',
+                : 'Optional · PDF or image (max 2 MB)',
             isUploaded: uploaded,
-            onTap: () => _showFilePickerSheet(
+            onTap: () => _pickFileFromDevice(
               title: 'Upload registration certificate',
-              defaultName: 'cert_cgh.pdf',
-              defaultSize: '850 KB',
-              onSelected: (name, size) => vm.attachCertificate(name: name, size: size),
+              onSelected: (name, size, base64, mimeType) {
+                vm.attachCertificate(name: name, size: size);
+              },
             ),
           );
         }),
@@ -792,6 +799,17 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
                             return;
                           }
                         }
+                        if (step == 3) {
+                          if (vm.documentBase64.value.isEmpty && vm.licenseDocName.value.isEmpty) {
+                            Get.snackbar(
+                              'Document Required',
+                              'Please attach a hospital license or verification document (PDF/Image) before proceeding.',
+                              backgroundColor: Colors.orange.shade50,
+                              colorText: Colors.orange.shade900,
+                            );
+                            return;
+                          }
+                        }
                         vm.nextStep();
                       },
                       style: ElevatedButton.styleFrom(
@@ -893,75 +911,76 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
     );
   }
 
-  void _showFilePickerSheet({
+  // Real file picker method for logo and documents (PDF, PNG, JPG only, max 2 MB)
+  Future<void> _pickFileFromDevice({
     required String title,
-    required String defaultName,
-    required String defaultSize,
-    required void Function(String name, String size) onSelected,
-  }) {
-    final nameController = TextEditingController(text: defaultName);
-    Get.bottomSheet(
-      Container(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            const Text(
-              'Enter or confirm the file name to attach.',
-              style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: nameController,
-              decoration: _tealInputDecoration(
-                hint: defaultName,
-                icon: Icons.attach_file_rounded,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: ElevatedButton(
-                onPressed: () {
-                  final name = nameController.text.trim().isEmpty
-                      ? defaultName
-                      : nameController.text.trim();
-                  onSelected(name, defaultSize);
-                  Get.back();
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.tealPrimary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: const Text(
-                  'Attach file',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    required void Function(String name, String size, String base64, String mimeType) onSelected,
+  }) async {
+    try {
+      final files = await FilePicker.pickFiles(
+        dialogTitle: title,
+        type: FileType.custom,
+        allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+      );
+
+      if (files.isEmpty) return;
+
+      final file = files.first;
+
+      // 1. File size validation (Maximum 2 MB)
+      final bytesLength = await file.length() ?? 0;
+      final sizeInMB = bytesLength / (1024 * 1024);
+      if (sizeInMB > 2.0) {
+        Get.snackbar(
+          'File Too Large',
+          'Please select a file smaller than 2 MB (Selected: ${sizeInMB.toStringAsFixed(1)} MB)',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return;
+      }
+
+      // 2. Format file size label
+      final kb = bytesLength / 1024;
+      final sizeString = kb > 1024
+          ? '${(kb / 1024).toStringAsFixed(1)} MB'
+          : '${kb.toStringAsFixed(0)} KB';
+
+      // 3. Read bytes and convert to Base64 for BYTEA database storage
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) {
+        Get.snackbar(
+          'Error',
+          'Selected file is empty. Please choose a valid file.',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return;
+      }
+      final base64String = base64Encode(bytes);
+
+      // 4. Determine file MIME type
+      final ext = file.extension?.toLowerCase() ?? '';
+      final mimeType = (ext == 'pdf')
+          ? 'application/pdf'
+          : (ext == 'png' ? 'image/png' : 'image/jpeg');
+
+      onSelected(file.name, sizeString, base64String, mimeType);
+
+      Get.snackbar(
+        'Attached',
+        '${file.name} selected successfully',
+        backgroundColor: Colors.green.shade50,
+        colorText: Colors.green.shade800,
+      );
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Failed to pick file: $e',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    }
   }
 }
 

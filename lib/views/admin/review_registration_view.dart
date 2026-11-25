@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../services/api_endpoints.dart';
 import '../../utils/app_colors.dart';
 import '../../viewmodels/admin_viewmodel.dart';
 
@@ -43,6 +45,11 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     final managerEmail = h['manager_email'] ?? '';
     final hospitalId = h['id'] as int? ?? 0;
     final status = (h['status'] ?? 'pending').toString().toLowerCase();
+    final rawDocName = h['document_name'] ?? h['license_doc_name'];
+    final bool hasDoc = (h['has_document'] == true) ||
+        (rawDocName != null && rawDocName.toString().trim().isNotEmpty && rawDocName.toString() != 'null');
+    final licenseDocName = hasDoc ? rawDocName.toString() : 'No document attached';
+    final licenseDocSize = h['license_doc_size']?.toString() ?? '';
 
     // Derive status badge styling and text
     final Color statusBg;
@@ -185,6 +192,175 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                   ),
                   _buildDivider(),
                   _buildDetailRow('Submitted', 'Recently submitted'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Verification documents card
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.folder_shared_outlined, color: AppColors.adminPrimary, size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Verification Documents',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Hospital License Document Tile
+                  if (!hasDoc)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade200,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.description_outlined, color: Colors.grey.shade600, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'No document uploaded',
+                                  style: TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  'Hospital was registered without a verification file',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.orange.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.orange.shade200),
+                            ),
+                            child: Text(
+                              'Missing',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange.shade800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  else
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.background,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(Icons.picture_as_pdf_rounded, color: Colors.red.shade700, size: 22),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  licenseDocName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  licenseDocSize.isNotEmpty ? licenseDocSize : 'Hospital License PDF / Image',
+                                  style: const TextStyle(
+                                    fontSize: 11.5,
+                                    color: AppColors.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          TextButton.icon(
+                            onPressed: () async {
+                              final docUrl = ApiEndpoints.hospitalDocumentUrl(hospitalId);
+                              final uri = Uri.parse(docUrl);
+                              try {
+                                if (await canLaunchUrl(uri)) {
+                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                } else {
+                                  Get.snackbar('Error', 'Could not open document link');
+                                }
+                              } catch (_) {
+                                Get.snackbar('Error', 'Unable to open file: $docUrl');
+                              }
+                            },
+                            icon: const Icon(Icons.visibility_outlined, size: 16),
+                            label: const Text('View', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                            style: TextButton.styleFrom(
+                              foregroundColor: AppColors.adminPrimary,
+                              backgroundColor: AppColors.adminPendingBg,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

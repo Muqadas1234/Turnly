@@ -13,6 +13,7 @@ class ManagerViewModel extends GetxController {
   final errorMessage = ''.obs;
   Timer? _statusTimer;
 
+
   void startStatusPolling() {
     if (_statusTimer != null && _statusTimer!.isActive) return;
     _statusTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
@@ -56,26 +57,29 @@ class ManagerViewModel extends GetxController {
     'Administrator',
   ];
 
-  // Step 3 (M7): Logo & verification documents
+  //  Logo & verification documents
   final logoFileName = ''.obs;
   final logoFileSize = ''.obs;
   final logoUrl = ''.obs;
+  final logoBase64 = ''.obs;
 
-  final licenseDocName = 'license_cgh.pdf'.obs;
-  final licenseDocSize = '1.2 MB'.obs;
+  final licenseDocName = ''.obs;
+  final licenseDocSize = ''.obs;
   final licenseDocUrl = ''.obs;
+  final documentBase64 = ''.obs;
+  final documentType = 'application/pdf'.obs;
 
   final certificateDocName = ''.obs;
   final certificateDocSize = ''.obs;
   final certificateDocUrl = ''.obs;
 
-  // Step 4 (M8): Review & submit
+  // Review & submit
   final isTermsConfirmed = true.obs;
 
-  // --- Current Hospital Status (M9 Rejected / M11 Suspended) ---
+  //  Current Hospital Status
   final currentHospital = Rxn<HospitalModel>();
 
-  // --- Manage Departments (M10) ---
+  // Manage Departments
   final departments = <DepartmentModel>[].obs;
   final departmentSearchQuery = ''.obs;
 
@@ -93,15 +97,11 @@ class ManagerViewModel extends GetxController {
 
   @override
   void onClose() {
-    hospitalNameC.dispose();
-    cityC.dispose();
-    addressC.dispose();
-    opdTimingsC.dispose();
-    managerNameC.dispose();
-    managerEmailC.dispose();
-    managerPhoneC.dispose();
+    _statusTimer?.cancel();
     super.onClose();
   }
+
+
 
   void _seedDefaultDepartmentsIfEmpty() {
     if (departments.isEmpty) {
@@ -166,16 +166,25 @@ class ManagerViewModel extends GetxController {
     }
   }
 
-  void attachLogo({required String name, required String size, String url = ''}) {
+  void attachLogo({required String name, required String size, String url = '', String base64 = ''}) {
     logoFileName.value = name;
     logoFileSize.value = size;
     logoUrl.value = url;
+    logoBase64.value = base64;
   }
 
-  void attachLicense({required String name, required String size, String url = ''}) {
+  void attachLicense({
+    required String name,
+    required String size,
+    String url = '',
+    String base64 = '',
+    String mimeType = 'application/pdf',
+  }) {
     licenseDocName.value = name;
     licenseDocSize.value = size;
     licenseDocUrl.value = url;
+    documentBase64.value = base64;
+    documentType.value = mimeType;
   }
 
   void attachCertificate({required String name, required String size, String url = ''}) {
@@ -244,6 +253,11 @@ class ManagerViewModel extends GetxController {
             ? certificateDocSize.value
             : '850 KB',
         'certificate_doc_url': certificateDocUrl.value,
+        'logo_base64': logoBase64.value.isNotEmpty ? logoBase64.value : null,
+        'logo_name': logoFileName.value.isNotEmpty ? logoFileName.value : null,
+        'document_base64': documentBase64.value.isNotEmpty ? documentBase64.value : null,
+        'document_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
+        'document_type': documentType.value.isNotEmpty ? documentType.value : 'application/pdf',
       };
 
       final response = isResubmitting.value
@@ -418,4 +432,6 @@ class ManagerViewModel extends GetxController {
       isLoading.value = false;
     }
   }
+
+  
 }
