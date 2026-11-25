@@ -38,9 +38,9 @@ class ManagerViewModel extends GetxController {
   final opdTimingsC = TextEditingController(text: '9:00 AM - 8:00 PM');
 
   // Step 2 (M6): Manager details
-  final managerNameC = TextEditingController(text: 'Dr. Farhan Ali');
-  final managerEmailC = TextEditingController(text: 'farhan@cgh.pk');
-  final managerPhoneC = TextEditingController(text: '+92 300 5551234');
+  final managerNameC = TextEditingController();
+  final managerEmailC = TextEditingController();
+  final managerPhoneC = TextEditingController();
   final managerDesignation = 'Medical Superintendent'.obs;
   final isAuthorizedConfirmed = true.obs;
 
@@ -97,6 +97,20 @@ class ManagerViewModel extends GetxController {
   void onInit() {
     super.onInit();
     _seedDefaultDepartmentsIfEmpty();
+    _prefillManagerFromAuth();
+  }
+
+  void _prefillManagerFromAuth() {
+    ApiService.getUserData().then((user) {
+      if (user != null) {
+        if (user['email'] != null && user['email'].toString().isNotEmpty) {
+          managerEmailC.text = user['email'].toString();
+        }
+        if (user['name'] != null && user['name'].toString().isNotEmpty) {
+          managerNameC.text = user['name'].toString();
+        }
+      }
+    });
   }
 
   @override
