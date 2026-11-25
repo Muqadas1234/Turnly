@@ -8,16 +8,23 @@ class AdminViewModel extends GetxController {
   final isLoading = false.obs;
   final selectedTab = 0.obs; // 0 = Approvals, 1 = Stats, 2 = Hospitals, 3 = Profile
 
-  // Filter chips: 'pending', 'approved', 'suspended'
+  // Filter chips: 'pending', 'approved', 'rejected', 'suspended'
   final selectedFilter = 'pending'.obs;
 
   final pendingCount = 0.obs;
   final approvedCount = 0.obs;
+  final rejectedCount = 0.obs;
   final suspendedCount = 0.obs;
 
   final hospitals = <Map<String, dynamic>>[].obs;
   final approvedHospitals = <Map<String, dynamic>>[].obs;
   final platformStats = <String, dynamic>{}.obs;
+
+  // Platform Users state
+  final users = <Map<String, dynamic>>[].obs;
+  final isUsersLoading = false.obs;
+  final userRoleFilter = 'all'.obs; // 'all', 'manager', 'patient'
+  final userSearchText = ''.obs;
 
   int _filterRequestGen = 0;
   Timer? _poller;
@@ -65,6 +72,7 @@ class AdminViewModel extends GetxController {
         final counts = response['counts'] as Map? ?? {};
         pendingCount.value = _toInt(counts['pending']);
         approvedCount.value = _toInt(counts['approved']);
+        rejectedCount.value = _toInt(counts['rejected']);
         suspendedCount.value = _toInt(counts['suspended']);
       }
     } catch (_) {
@@ -198,6 +206,73 @@ class AdminViewModel extends GetxController {
       );
       return false;
     }
+  }
+
+  Future<bool> deleteHospital(int hospitalId) async {
+    try {
+      final response = await ApiService.deleteHospital(hospitalId);
+      if (response['success'] == true) {
+        Get.snackbar(
+          'Deleted',
+          response['message'] ?? 'Hospital deleted permanently',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        fetchHospitals();
+        fetchApprovedHospitals();
+        fetchStats();
+        return true;
+      }
+      Get.snackbar(
+        'Error',
+        response['message'] ?? 'Failed to delete hospital',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Failed to delete hospital',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
+    }
+  }
+
+  Future<void> fetchUsers({String? role, String? search}) async {
+    isUsersLoading.value = true;
+    try {
+      final targetRole = role ?? (userRoleFilter.value == 'all' ? null : userRoleFilter.value);
+      final targetSearch = search ?? userSearchText.value;
+      final response = await ApiService.getAdminUsers(role: targetRole, search: targetSearch);
+      if (response['success'] == true) {
+        final list = (response['data'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        users.assignAll(list);
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Failed to fetch users',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    } finally {
+      isUsersLoading.value = false;
+    }
+  }
+
+  void setUserRoleFilter(String role) {
+    userRoleFilter.value = role;
+    fetchUsers(role: role == 'all' ? null : role);
+  }
+
+  void searchUsers(String query) {
+    userSearchText.value = query;
+    fetchUsers(search: query);
   }
 
   Future<void> fetchStats() async {

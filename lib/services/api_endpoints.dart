@@ -38,7 +38,9 @@ class ApiEndpoints {
   static String adminApproveHospital(int id) => '$baseUrl/admin/hospitals/$id/approve';
   static String adminRejectHospital(int id) => '$baseUrl/admin/hospitals/$id/reject';
   static String adminSuspendHospital(int id) => '$baseUrl/admin/hospitals/$id/suspend';
+  static String adminDeleteHospital(int id) => '$baseUrl/admin/hospitals/$id';
   static String get adminStats => '$baseUrl/admin/stats';
+  static String get adminUsers => '$baseUrl/admin/users';
 
   // Department Management Endpoints
   static String get departmentsUrl => '$baseUrl/departments';

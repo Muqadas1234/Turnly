@@ -38,6 +38,45 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     }
   }
 
+  void _showDeleteDialog(BuildContext context, int hospitalId, String hospitalName) {
+    Get.dialog(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Hospital', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete "$hospitalName"? This will remove all associated departments, doctors, and queues from the database. This action cannot be undone.',
+          style: const TextStyle(height: 1.4, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Get.back(); // close dialog
+              final success = await _adminVm.deleteHospital(hospitalId);
+              if (success) {
+                Get.back(); // close ReviewRegistrationView
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = widget.hospital;
@@ -387,6 +426,146 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                   child: const Text(
                     'Reject registration',
                     style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+
+            // ── Actions for Rejected status ──
+            if (status == 'rejected') ...[
+              if ((h['rejection_note'] ?? h['rejection_reason'] ?? '').toString().isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.red.shade200),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'CURRENT REJECTION REASON:',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.red,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        (h['rejection_note'] ?? h['rejection_reason']).toString(),
+                        style: TextStyle(fontSize: 13.5, color: Colors.red.shade900),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final success = await _adminVm.approveHospital(hospitalId);
+                    if (success) {
+                      Get.back();
+                    }
+                  },
+                  icon: const Icon(Icons.check, size: 20),
+                  label: const Text(
+                    'Approve hospital',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: AppColors.surface,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            // ── Actions for Suspended status ──
+            if (status == 'suspended') ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    final success = await _adminVm.approveHospital(hospitalId);
+                    if (success) {
+                      Get.back();
+                    }
+                  },
+                  icon: const Icon(Icons.refresh, size: 20),
+                  label: const Text(
+                    'Reactivate & Approve',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: AppColors.surface,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () => _showDeleteDialog(context, hospitalId, name.toString()),
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  label: const Text(
+                    'Delete hospital permanently',
+                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red.shade50,
+                    foregroundColor: Colors.red.shade800,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+
+            // ── Actions for Approved status ──
+            if (status == 'approved') ...[
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final success = await _adminVm.suspendHospital(hospitalId);
+                    if (success) {
+                      Get.back();
+                    }
+                  },
+                  icon: Icon(Icons.block, size: 20, color: Colors.red.shade700),
+                  label: Text(
+                    'Suspend hospital',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red.shade700,
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Colors.red.shade300),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                 ),
               ),
