@@ -27,6 +27,7 @@ import '../views/admin/admin_panel_view.dart';
 import '../views/admin/platform_stats_view.dart';
 import '../views/auth/forgot_password_view.dart';
 import '../views/auth/reset_password_view.dart';
+
 class AppRoutes {
   static const splash = '/splash';
   static const roleSelection = '/role-selection';
@@ -86,7 +87,5 @@ class AppPages {
     GetPage(name: AppRoutes.platformStats, page: () => const PlatformStatsView()),
     GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
     GetPage(name: AppRoutes.resetPassword, page: () => const ResetPasswordView()),
-
-
   ];
 }

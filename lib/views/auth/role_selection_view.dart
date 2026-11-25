@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:get/get.dart';
 
+import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/routes.dart';
 import '../../viewmodels/auth_viewmodel.dart';
@@ -26,10 +28,13 @@ class RoleSelectionView extends StatelessWidget {
                   gradient: AppColors.primaryGradient,
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: const Icon(
-                  Icons.confirmation_number_rounded,
-                  size: 44,
-                  color: Colors.white,
+                child: Center(
+                  child: SvgPicture.asset(
+                    AppAssets.ticketIcon,
+                    width: 44,
+                    height: 44,
+                    colorFilter: const ColorFilter.mode(Colors.white, BlendMode.srcIn),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -55,9 +60,11 @@ class RoleSelectionView extends StatelessWidget {
 
               // Patient Card
               _RoleCard(
-                icon: Icons.person_rounded,
+                iconAsset: AppAssets.userIcon,
                 title: 'Patient',
                 subtitle: 'Book tokens, track your queue\nposition & get notified.',
+                iconBgColor: AppColors.lightGreenWhistish,
+                iconColor: AppColors.darkGreen,
                 onTap: () {
                   Get.find<AuthViewModel>().selectedRole.value = 'patient';
                   Get.toNamed(AppRoutes.login);
@@ -68,9 +75,11 @@ class RoleSelectionView extends StatelessWidget {
 
               // Manager Card
               _RoleCard(
-                icon: Icons.local_hospital_rounded,
+                iconAsset: AppAssets.hospitalManagerIcon,
                 title: 'Hospital Manager',
                 subtitle: 'Register your hospital, manage\ndoctors & control queues.',
+                iconBgColor: AppColors.lightGreenWhistish,
+                iconColor: AppColors.darkGreen,
                 onTap: () {
                   Get.find<AuthViewModel>().selectedRole.value = 'manager';
                   Get.toNamed(AppRoutes.registrationForm);
@@ -79,7 +88,7 @@ class RoleSelectionView extends StatelessWidget {
 
               const Spacer(),
 
-              Text(
+              const Text(
                 'We store only your name, email and tokens.\nNo medical history.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
@@ -98,15 +107,19 @@ class RoleSelectionView extends StatelessWidget {
 }
 
 class _RoleCard extends StatelessWidget {
-  final IconData icon;
+  final String iconAsset;
   final String title;
   final String subtitle;
+  final Color? iconBgColor;
+  final Color? iconColor;
   final VoidCallback onTap;
 
   const _RoleCard({
-    required this.icon,
+    required this.iconAsset,
     required this.title,
     required this.subtitle,
+    this.iconBgColor,
+    this.iconColor,
     required this.onTap,
   });
 
@@ -124,7 +137,7 @@ class _RoleCard extends StatelessWidget {
           border: Border.all(color: Colors.grey.shade200),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.04),
+              color: Colors.black.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -136,10 +149,19 @@ class _RoleCard extends StatelessWidget {
               width: 56,
               height: 56,
               decoration: BoxDecoration(
-                color: AppColors.primary.withOpacity(0.1),
+                color: iconBgColor ?? AppColors.lightGreenWhistish,
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 28),
+              child: Center(
+                child: SvgPicture.asset(
+                  iconAsset,
+                  width: 28,
+                  height: 28,
+                  colorFilter: iconColor != null
+                      ? ColorFilter.mode(iconColor!, BlendMode.srcIn)
+                      : null,
+                ),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(

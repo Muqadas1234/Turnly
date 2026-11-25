@@ -245,8 +245,6 @@ class AuthViewModel extends GetxController {
     Get.offAllNamed(route);
   }
 
-
-
   Future<void> forgotPassword(String email) async {
     isLoading.value = true;
     try {
@@ -330,6 +328,80 @@ class AuthViewModel extends GetxController {
         backgroundColor: Colors.red.shade50,
         colorText: Colors.red.shade800,
       );
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Edit profile - saves user's new name in backend.
+  Future<bool> updateProfileName(String newName) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.updateProfile(name: newName);
+
+      if (response['success'] == true) {
+        // 1. Update the local reactive state with the new name
+        final updatedUser = Map<String, dynamic>.from(currentUser.value ?? {});
+        updatedUser['name'] = newName;
+        currentUser.value = updatedUser;
+
+        // Persist updated user details to local storage
+        await ApiService.saveUserData(updatedUser);
+
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Could not update name',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Something went wrong. Please try again.',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  // Change password method
+  Future<bool> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    isLoading.value = true;
+    try {
+      final response = await ApiService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+
+      if (response['success'] == true) {
+        return true;
+      } else {
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Failed to change password',
+          backgroundColor: Colors.red.shade50,
+          colorText: Colors.red.shade800,
+        );
+        return false;
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Network error. Please try again',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      return false;
     } finally {
       isLoading.value = false;
     }

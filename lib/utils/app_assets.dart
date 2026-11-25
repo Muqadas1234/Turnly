@@ -1,6 +1,7 @@
 class AppAssets {
   static const String homeIcon = "assets/icons/home.svg";
   static const String hospitalIcon = "assets/icons/hospital.svg";
+  static const String hospitalManagerIcon = "assets/icons/Hospital_Manager.svg";
   static const String ticketIcon = "assets/icons/ticket.svg";
   static const String userIcon = "assets/icons/user.svg";
   static const String usersIcon = "assets/icons/users.svg";
