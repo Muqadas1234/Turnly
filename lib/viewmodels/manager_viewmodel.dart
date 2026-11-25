@@ -290,8 +290,8 @@ class ManagerViewModel extends GetxController {
           backgroundColor: Colors.green.shade50,
           colorText: Colors.green.shade800,
         );
-        // Move forward into the manager flow (Departments / Dashboard)
-        Get.offAllNamed(AppRoutes.manageDepartments);
+        // Navigate to pending approval view to await admin review
+        Get.offAllNamed(AppRoutes.pendingApproval);
       } else {
         errorMessage.value = response['message'] ?? 'Submission failed';
         Get.snackbar(
@@ -323,9 +323,16 @@ class ManagerViewModel extends GetxController {
         );
         currentHospital.value = hosp;
         if (routeByStatus) {
-          if (hosp.status == 'rejected') {
+          if (hosp.status == 'approved') {
+            stopStatusPolling();
+            Get.offAllNamed(AppRoutes.managerDashboard);
+          } else if (hosp.status == 'pending') {
+            Get.offAllNamed(AppRoutes.pendingApproval);
+          } else if (hosp.status == 'rejected') {
+            stopStatusPolling();
             Get.offAllNamed(AppRoutes.registrationRejected);
           } else if (hosp.status == 'suspended') {
+            stopStatusPolling();
             Get.offAllNamed(AppRoutes.hospitalSuspended);
           }
         }

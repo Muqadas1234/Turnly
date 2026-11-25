@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../services/api_service.dart';
 import '../utils/routes.dart';
+import 'manager_viewmodel.dart';
 
 class AuthViewModel extends GetxController {
   final isLoading = false.obs;
@@ -237,9 +238,17 @@ class AuthViewModel extends GetxController {
   }
 
   void _navigateToHome(dynamic role) {
-    final route = switch (role?.toString().toLowerCase().trim()) {
+    final roleStr = role?.toString().toLowerCase().trim();
+    if (roleStr == 'manager') {
+      final managerVm = Get.isRegistered<ManagerViewModel>()
+          ? Get.find<ManagerViewModel>()
+          : Get.put(ManagerViewModel());
+      managerVm.loadMyHospital(routeByStatus: true);
+      return;
+    }
+
+    final route = switch (roleStr) {
       'admin' => AppRoutes.adminPanel,
-      'manager' => AppRoutes.managerDashboard,
       _ => AppRoutes.home,
     };
     Get.offAllNamed(route);
