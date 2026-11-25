@@ -18,6 +18,14 @@ class _ManageDepartmentsViewState extends State<ManageDepartmentsView> {
   final _searchC = TextEditingController();
   ManagerViewModel get vm => Get.find<ManagerViewModel>();
 
+  void _navigateBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    } else {
+      Get.offAllNamed(AppRoutes.managerDashboard);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -43,7 +51,7 @@ class _ManageDepartmentsViewState extends State<ManageDepartmentsView> {
               child: Row(
                 children: [
                   InkWell(
-                    onTap: () => Get.back(),
+                    onTap: _navigateBack,
                     borderRadius: BorderRadius.circular(20),
                     child: Container(
                       width: 36,

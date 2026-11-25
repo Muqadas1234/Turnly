@@ -394,8 +394,8 @@ style: ElevatedButton.styleFrom(
     unselectedFontSize: 11.5,
     onTap: (index) {
       if (index == 0) Get.offNamed(AppRoutes.managerDashboard);
-      if (index == 2) Get.offNamed(AppRoutes.doctorManagement);
-      if (index == 3) Get.offNamed(AppRoutes.profile);
+      if (index == 2) Get.toNamed(AppRoutes.doctorManagement);
+      if (index == 3) Get.toNamed(AppRoutes.profile);
     },
     items: const [
       BottomNavigationBarItem(

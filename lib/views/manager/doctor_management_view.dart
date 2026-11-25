@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
 
 class DoctorManagementView extends StatefulWidget {
   const DoctorManagementView({super.key});
@@ -120,47 +121,64 @@ class _AddDoctorViewState extends State<DoctorManagementView> {
     );
   }
 
+  void _navigateBack() {
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop();
+    } else {
+      Get.offAllNamed(AppRoutes.managerDashboard);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-// Top App Bar Row
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Get.back(),
-                    child: Container(
-                      width: 38,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        _navigateBack();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Top App Bar Row
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 14, 20, 10),
+                child: Row(
+                  children: [
+                    InkWell(
+                      onTap: _navigateBack,
+                      borderRadius: BorderRadius.circular(20),
+                      child: Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            size: 18,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        size: 16,
+                    ),
+                    const SizedBox(width: 14),
+                    const Text(
+                      'Add doctor',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
                         color: AppColors.textPrimary,
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 14),
-                  const Text(
-                    'Add doctor',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
 
 // Form Content
             Expanded(
@@ -416,7 +434,7 @@ class _AddDoctorViewState extends State<DoctorManagementView> {
           ],
         ),
       ),
-    );
+    ));
   }
   Widget _buildFieldLabel(String text) {
     return Text(
