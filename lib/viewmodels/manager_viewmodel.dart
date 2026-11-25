@@ -63,15 +63,19 @@ class ManagerViewModel extends GetxController {
   final logoUrl = ''.obs;
   final logoBase64 = ''.obs;
 
+  // License document (file 1) - required
   final licenseDocName = ''.obs;
   final licenseDocSize = ''.obs;
   final licenseDocUrl = ''.obs;
   final documentBase64 = ''.obs;
   final documentType = 'application/pdf'.obs;
 
+  // Registration certificate (file 2) - optional
   final certificateDocName = ''.obs;
   final certificateDocSize = ''.obs;
   final certificateDocUrl = ''.obs;
+  final certificateBase64 = ''.obs;
+  final certificateDataType = 'application/pdf'.obs;
 
   // Review & submit
   final isTermsConfirmed = true.obs;
@@ -187,10 +191,18 @@ class ManagerViewModel extends GetxController {
     documentType.value = mimeType;
   }
 
-  void attachCertificate({required String name, required String size, String url = ''}) {
+  void attachCertificate({
+    required String name,
+    required String size,
+    String url = '',
+    String base64 = '',
+    String mimeType = 'application/pdf',
+  }) {
     certificateDocName.value = name;
     certificateDocSize.value = size;
     certificateDocUrl.value = url;
+    certificateBase64.value = base64;
+    certificateDataType.value = mimeType;
   }
 
   void prefillFromHospital(HospitalModel hospital) {
@@ -243,21 +255,22 @@ class ManagerViewModel extends GetxController {
         'manager_email': managerEmailC.text.trim(),
         'manager_phone': managerPhoneC.text.trim(),
         'manager_designation': managerDesignation.value,
-        'license_doc_name': licenseDocName.value,
-        'license_doc_size': licenseDocSize.value,
-        'license_doc_url': licenseDocUrl.value,
-        'certificate_doc_name': certificateDocName.value.isNotEmpty
-            ? certificateDocName.value
-            : 'cert_cgh.pdf',
-        'certificate_doc_size': certificateDocSize.value.isNotEmpty
-            ? certificateDocSize.value
-            : '850 KB',
-        'certificate_doc_url': certificateDocUrl.value,
+        'license_doc_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
+        'license_doc_size': licenseDocSize.value.isNotEmpty ? licenseDocSize.value : null,
+        'license_doc_url': licenseDocUrl.value.isNotEmpty ? licenseDocUrl.value : null,
+        'certificate_doc_name': certificateDocName.value.isNotEmpty ? certificateDocName.value : null,
+        'certificate_doc_size': certificateDocSize.value.isNotEmpty ? certificateDocSize.value : null,
+        'certificate_doc_url': certificateDocUrl.value.isNotEmpty ? certificateDocUrl.value : null,
+        // Logo binary
         'logo_base64': logoBase64.value.isNotEmpty ? logoBase64.value : null,
         'logo_name': logoFileName.value.isNotEmpty ? logoFileName.value : null,
+        // License document binary
         'document_base64': documentBase64.value.isNotEmpty ? documentBase64.value : null,
         'document_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
         'document_type': documentType.value.isNotEmpty ? documentType.value : 'application/pdf',
+        // Certificate document binary
+        'certificate_base64': certificateBase64.value.isNotEmpty ? certificateBase64.value : null,
+        'certificate_data_type': certificateDataType.value.isNotEmpty ? certificateDataType.value : 'application/pdf',
       };
 
       final response = isResubmitting.value

@@ -55,8 +55,9 @@ class ApiEndpoints {
   static String get bookTokenUrl => '$baseUrl/patient/tokens/book';
   static String doctorQueueStatus(int id) => '$baseUrl/patient/doctors/$id/queue-status';
 
-  // Hospital Document & Logo Endpoints
+  // Hospital Document, Certificate & Logo Endpoints
   static String hospitalDocumentUrl(int id) => '$baseUrl/hospitals/$id/document';
+  static String hospitalCertificateUrl(int id) => '$baseUrl/hospitals/$id/certificate';
   static String hospitalLogoUrl(int id) => '$baseUrl/hospitals/$id/logo';
 
   // Forgot & Reset Password Endpoints

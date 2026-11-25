@@ -424,7 +424,12 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
             onTap: () => _pickFileFromDevice(
               title: 'Upload registration certificate',
               onSelected: (name, size, base64, mimeType) {
-                vm.attachCertificate(name: name, size: size);
+                vm.attachCertificate(
+                  name: name,
+                  size: size,
+                  base64: base64,
+                  mimeType: mimeType,
+                );
               },
             ),
           );

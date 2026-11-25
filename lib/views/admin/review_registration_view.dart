@@ -24,6 +24,20 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     super.dispose();
   }
 
+  /// Open a URL in the external browser / PDF viewer
+  Future<void> _openUrl(String url) async {
+    final uri = Uri.parse(url);
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        Get.snackbar('Error', 'Could not open: $url');
+      }
+    } catch (_) {
+      Get.snackbar('Error', 'Unable to open file');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final h = widget.hospital;
@@ -45,13 +59,34 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     final managerEmail = h['manager_email'] ?? '';
     final hospitalId = h['id'] as int? ?? 0;
     final status = (h['status'] ?? 'pending').toString().toLowerCase();
+
+    // ── License document (file 1) ──
     final rawDocName = h['document_name'] ?? h['license_doc_name'];
     final bool hasDoc = (h['has_document'] == true) ||
-        (rawDocName != null && rawDocName.toString().trim().isNotEmpty && rawDocName.toString() != 'null');
-    final licenseDocName = hasDoc ? rawDocName.toString() : 'No document attached';
+        (rawDocName != null &&
+            rawDocName.toString().trim().isNotEmpty &&
+            rawDocName.toString() != 'null');
+    final licenseDocName = hasDoc ? rawDocName.toString() : '';
     final licenseDocSize = h['license_doc_size']?.toString() ?? '';
 
-    // Derive status badge styling and text
+    // ── Registration certificate (file 2) ──
+    final rawCertName = h['certificate_doc_name'];
+    final bool hasCert = (h['has_certificate'] == true) ||
+        (rawCertName != null &&
+            rawCertName.toString().trim().isNotEmpty &&
+            rawCertName.toString() != 'null');
+    final certDocName = hasCert ? rawCertName.toString() : '';
+    final certDocSize = h['certificate_doc_size']?.toString() ?? '';
+
+    // ── Hospital logo (file 3) ──
+    final rawLogoName = h['logo_name'];
+    final bool hasLogo = (h['has_logo'] == true) ||
+        (rawLogoName != null &&
+            rawLogoName.toString().trim().isNotEmpty &&
+            rawLogoName.toString() != 'null');
+    final logoFileName = hasLogo ? rawLogoName.toString() : '';
+
+    // Status badge
     final Color statusBg;
     final Color statusText;
     final String statusLabel;
@@ -78,7 +113,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         statusLabel = 'Pending review';
     }
 
-    // Generate initials (e.g., 'City General Hospital' -> 'CG')
+    // Generate initials (e.g. 'City General Hospital' -> 'CG')
     final words = name.trim().split(RegExp(r'\s+'));
     final initials = words.length >= 2
         ? '${words[0][0]}${words[1][0]}'.toUpperCase()
@@ -107,7 +142,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header card with avatar, name, and pending badge
+            // ── Header card ──
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -166,7 +201,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             ),
             const SizedBox(height: 16),
 
-            // Hospital specifications table card
+            // ── Hospital specs table card ──
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -197,7 +232,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             ),
             const SizedBox(height: 16),
 
-            // Verification documents card
+            // ── Verification Documents card (3 tiles) ──
             Container(
               padding: const EdgeInsets.all(18),
               decoration: BoxDecoration(
@@ -224,149 +259,52 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Hospital License Document Tile
-                  if (!hasDoc)
-                    Container(
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade200,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.description_outlined, color: Colors.grey.shade600, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'No document uploaded',
-                                  style: TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Hospital was registered without a verification file',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange.shade200),
-                            ),
-                            child: Text(
-                              'Missing',
-                              style: TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.orange.shade800,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  else
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade50,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(Icons.picture_as_pdf_rounded, color: Colors.red.shade700, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  licenseDocName,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textPrimary,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  licenseDocSize.isNotEmpty ? licenseDocSize : 'Hospital License PDF / Image',
-                                  style: const TextStyle(
-                                    fontSize: 11.5,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          TextButton.icon(
-                            onPressed: () async {
-                              final docUrl = ApiEndpoints.hospitalDocumentUrl(hospitalId);
-                              final uri = Uri.parse(docUrl);
-                              try {
-                                if (await canLaunchUrl(uri)) {
-                                  await launchUrl(uri, mode: LaunchMode.externalApplication);
-                                } else {
-                                  Get.snackbar('Error', 'Could not open document link');
-                                }
-                              } catch (_) {
-                                Get.snackbar('Error', 'Unable to open file: $docUrl');
-                              }
-                            },
-                            icon: const Icon(Icons.visibility_outlined, size: 16),
-                            label: const Text('View', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-                            style: TextButton.styleFrom(
-                              foregroundColor: AppColors.adminPrimary,
-                              backgroundColor: AppColors.adminPendingBg,
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // Tile 1 — Hospital Logo
+                  _buildDocTile(
+                    label: '1. Hospital Logo',
+                    fileName: logoFileName.isNotEmpty ? logoFileName : null,
+                    iconData: Icons.image_outlined,
+                    iconColor: Colors.teal,
+                    iconBg: Colors.teal.shade50,
+                    onView: hasLogo
+                        ? () => _openUrl(ApiEndpoints.hospitalLogoUrl(hospitalId))
+                        : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tile 2 — Hospital License
+                  _buildDocTile(
+                    label: '2. Hospital License',
+                    fileName: licenseDocName.isNotEmpty ? licenseDocName : null,
+                    fileSize: licenseDocSize,
+                    iconData: Icons.picture_as_pdf_rounded,
+                    iconColor: Colors.red.shade700,
+                    iconBg: Colors.red.shade50,
+                    onView: hasDoc
+                        ? () => _openUrl(ApiEndpoints.hospitalDocumentUrl(hospitalId))
+                        : null,
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Tile 3 — Registration Certificate (optional)
+                  _buildDocTile(
+                    label: '3. Registration Certificate',
+                    fileName: certDocName.isNotEmpty ? certDocName : null,
+                    fileSize: certDocSize,
+                    isOptional: true,
+                    iconData: Icons.verified_outlined,
+                    iconColor: Colors.indigo.shade700,
+                    iconBg: Colors.indigo.shade50,
+                    onView: hasCert
+                        ? () => _openUrl(ApiEndpoints.hospitalCertificateUrl(hospitalId))
+                        : null,
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
 
-            // Optional rejection note input field
+            // ── Rejection note + action buttons (pending only) ──
             if (status == 'pending') ...[
               const Text(
                 'Rejection note (optional)',
@@ -402,7 +340,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
               ),
               const SizedBox(height: 24),
 
-              // Action buttons
+              // Approve button
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -428,6 +366,8 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // Reject button
               SizedBox(
                 width: double.infinity,
                 height: 44,
@@ -457,6 +397,148 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
     );
   }
 
+  /// Single document tile used for all three file types.
+  /// Shows a "Missing" badge when [fileName] is null, otherwise shows file name + View button.
+  Widget _buildDocTile({
+    required String label,
+    required String? fileName,
+    String fileSize = '',
+    bool isOptional = false,
+    required IconData iconData,
+    required Color iconColor,
+    required Color iconBg,
+    VoidCallback? onView,
+  }) {
+    final bool uploaded = fileName != null && fileName.isNotEmpty;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Label row
+        Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              if (isOptional) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade200,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Text(
+                    'optional',
+                    style: TextStyle(fontSize: 10, color: AppColors.textSecondary),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+
+        // File tile
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.background,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: uploaded ? AppColors.border : Colors.orange.shade200,
+            ),
+          ),
+          child: Row(
+            children: [
+              // Icon box
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: uploaded ? iconBg : Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  uploaded ? iconData : Icons.upload_file_outlined,
+                  color: uploaded ? iconColor : Colors.grey.shade500,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Name + size
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      uploaded ? fileName : (isOptional ? 'Not uploaded' : 'No file attached'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w600,
+                        color: uploaded ? AppColors.textPrimary : AppColors.textSecondary,
+                      ),
+                    ),
+                    if (uploaded && fileSize.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        fileSize,
+                        style: const TextStyle(fontSize: 11.5, color: AppColors.textSecondary),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+
+              // View button or Missing badge
+              if (uploaded && onView != null)
+                TextButton.icon(
+                  onPressed: onView,
+                  icon: const Icon(Icons.visibility_outlined, size: 16),
+                  label: const Text('View', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.adminPrimary,
+                    backgroundColor: AppColors.adminPendingBg,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isOptional ? Colors.grey.shade100 : Colors.orange.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: isOptional ? Colors.grey.shade300 : Colors.orange.shade200,
+                    ),
+                  ),
+                  child: Text(
+                    isOptional ? 'N/A' : 'Missing',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isOptional ? Colors.grey.shade600 : Colors.orange.shade800,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -467,10 +549,7 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             width: 110,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AppColors.textSecondary,
-              ),
+              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
             ),
           ),
           Expanded(
