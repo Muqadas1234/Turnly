@@ -22,7 +22,7 @@ class AdminPanelView extends StatelessWidget {
           case 1:
             return const PlatformStatsView();
           case 2:
-            return _buildUsersTab(context, vm);
+            return _buildManagersTab(context, vm);
           case 3:
             return _buildProfileTab(context);
           default:
@@ -35,7 +35,7 @@ class AdminPanelView extends StatelessWidget {
           vm.selectedTab.value = index;
           if (index == 0) vm.fetchHospitals();
           if (index == 1) vm.fetchStats();
-          if (index == 2) vm.fetchUsers();
+          if (index == 2) vm.fetchManagers();
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.adminPrimary,
@@ -56,9 +56,9 @@ class AdminPanelView extends StatelessWidget {
             label: 'Stats',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline, size: 22),
-            activeIcon: Icon(Icons.people, size: 22),
-            label: 'Users',
+            icon: Icon(Icons.manage_accounts_outlined, size: 22),
+            activeIcon: Icon(Icons.manage_accounts, size: 22),
+            label: 'Managers',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline, size: 22),
@@ -675,13 +675,13 @@ class AdminPanelView extends StatelessWidget {
     );
   }
 
-  // Tab 2: Registered Platform Users screen
-  Widget _buildUsersTab(BuildContext context, AdminViewModel vm) {
-    final searchController = TextEditingController(text: vm.userSearchText.value);
+  // Tab 2: Registered Hospital Managers screen
+  Widget _buildManagersTab(BuildContext context, AdminViewModel vm) {
+    final searchController = TextEditingController(text: vm.managerSearchText.value);
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => vm.fetchUsers(),
+        onRefresh: () => vm.fetchManagers(),
         color: AppColors.adminPrimary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -690,7 +690,7 @@ class AdminPanelView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Platform Users',
+                'Hospital Managers',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -699,7 +699,7 @@ class AdminPanelView extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Manage registered managers and patients',
+                'Overview of registered hospital managers and facilities',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
@@ -711,7 +711,7 @@ class AdminPanelView extends StatelessWidget {
               TextField(
                 controller: searchController,
                 decoration: InputDecoration(
-                  hintText: 'Search by name, email, or phone...',
+                  hintText: 'Search by manager name, email, or hospital...',
                   hintStyle: const TextStyle(fontSize: 13, color: AppColors.textHint),
                   prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondary),
                   suffixIcon: searchController.text.isNotEmpty
@@ -719,7 +719,7 @@ class AdminPanelView extends StatelessWidget {
                           icon: const Icon(Icons.clear, size: 18),
                           onPressed: () {
                             searchController.clear();
-                            vm.searchUsers('');
+                            vm.searchManagers('');
                           },
                         )
                       : null,
@@ -739,28 +739,35 @@ class AdminPanelView extends StatelessWidget {
                     borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
                   ),
                 ),
-                onSubmitted: (val) => vm.searchUsers(val),
+                onSubmitted: (val) => vm.searchManagers(val),
                 onChanged: (val) {
-                  if (val.isEmpty) vm.searchUsers('');
+                  if (val.isEmpty) vm.searchManagers('');
                 },
               ),
               const SizedBox(height: 12),
 
-              // Role Filter Chips (All, Managers, Patients)
-              Obx(() => Row(
-                children: [
-                  _buildUserRoleChip(vm, 'all', 'All Users'),
-                  const SizedBox(width: 8),
-                  _buildUserRoleChip(vm, 'manager', 'Managers'),
-                  const SizedBox(width: 8),
-                  _buildUserRoleChip(vm, 'patient', 'Patients'),
-                ],
-              )),
+              // Status Filter Chips (All, Approved, Pending, Rejected, Suspended)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildManagerFilterChip(vm, 'all', 'All Managers'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'approved', 'Approved'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'pending', 'Pending'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'rejected', 'Rejected'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'suspended', 'Suspended'),
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
 
-              // Users List
+              // Managers List
               Obx(() {
-                if (vm.isUsersLoading.value) {
+                if (vm.isManagersLoading.value) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 60),
                     child: Center(
@@ -769,17 +776,17 @@ class AdminPanelView extends StatelessWidget {
                   );
                 }
 
-                if (vm.users.isEmpty) {
+                if (vm.managers.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.symmetric(vertical: 60),
                     child: Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.people_outline, size: 48, color: Colors.grey.shade400),
+                          Icon(Icons.manage_accounts_outlined, size: 48, color: Colors.grey.shade400),
                           const SizedBox(height: 12),
                           const Text(
-                            'No users found',
+                            'No managers found',
                             style: TextStyle(
                               fontSize: 15,
                               color: AppColors.textSecondary,
@@ -795,20 +802,16 @@ class AdminPanelView extends StatelessWidget {
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: vm.users.length,
+                  itemCount: vm.managers.length,
                   separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final user = vm.users[index];
-                    final name = (user['name'] ?? 'User').toString();
-                    final email = (user['email'] ?? '').toString();
-                    final phone = (user['phone'] ?? '').toString();
-                    final role = (user['role'] ?? 'patient').toString().toLowerCase();
-                    final hospitalName = (user['hospital_name'] ?? '').toString();
-                    final hospitalStatus = (user['hospital_status'] ?? '').toString().toLowerCase();
-
-                    final isManager = role == 'manager';
-                    final roleColor = isManager ? AppColors.tealPrimary : Colors.blue.shade700;
-                    final roleBg = isManager ? AppColors.tealLight : Colors.blue.shade50;
+                    final manager = vm.managers[index];
+                    final name = (manager['name'] ?? 'Manager').toString();
+                    final email = (manager['email'] ?? '').toString();
+                    final phone = (manager['phone'] ?? '').toString();
+                    final hospitalId = manager['hospital_id'] as int?;
+                    final hospitalName = (manager['hospital_name'] ?? '').toString();
+                    final hospitalStatus = (manager['hospital_status'] ?? '').toString().toLowerCase();
 
                     final words = name.trim().split(RegExp(r'\s+'));
                     final initials = words.length >= 2
@@ -822,104 +825,119 @@ class AdminPanelView extends StatelessWidget {
                         borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Row(
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          CircleAvatar(
-                            radius: 20,
-                            backgroundColor: roleBg,
-                            child: Text(
-                              initials,
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: roleColor,
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.tealLight,
+                                child: Text(
+                                  initials,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.tealPrimary,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Expanded(
-                                      child: Text(
-                                        name,
-                                        style: const TextStyle(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: AppColors.textPrimary,
-                                        ),
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                      decoration: BoxDecoration(
-                                        color: roleBg,
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Text(
-                                        role.capitalizeFirst ?? role,
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w700,
-                                          color: roleColor,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.email_outlined, size: 14, color: AppColors.textSecondary),
-                                    const SizedBox(width: 5),
-                                    Expanded(
-                                      child: Text(
-                                        email,
-                                        style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                if (phone.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.phone_outlined, size: 14, color: AppColors.textSecondary),
-                                      const SizedBox(width: 5),
-                                      Text(
-                                        phone,
-                                        style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                                if (isManager && hospitalName.isNotEmpty) ...[
-                                  const SizedBox(height: 6),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.local_hospital_outlined, size: 14, color: AppColors.tealPrimary),
-                                      const SizedBox(width: 5),
-                                      Expanded(
-                                        child: Text(
-                                          hospitalName,
-                                          style: const TextStyle(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: AppColors.textPrimary,
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.email_outlined, size: 13, color: AppColors.textSecondary),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            email,
+                                            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                      if (hospitalStatus.isNotEmpty)
-                                        _buildStatusBadge(hospitalStatus),
-                                    ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (hospitalStatus.isNotEmpty)
+                                _buildStatusBadge(hospitalStatus),
+                            ],
+                          ),
+                          if (phone.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_outlined, size: 13, color: AppColors.textSecondary),
+                                const SizedBox(width: 5),
+                                Text(
+                                  phone,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                ),
+                              ],
+                            ),
+                          ],
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.local_hospital_outlined,
+                                  size: 16,
+                                  color: hospitalName.isNotEmpty ? AppColors.tealPrimary : Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    hospitalName.isNotEmpty ? hospitalName : 'No hospital registered yet',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: hospitalName.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                                      color: hospitalName.isNotEmpty ? AppColors.textPrimary : AppColors.textHint,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
                                   ),
-                                ],
+                                ),
+                                if (hospitalId != null && hospitalId > 0)
+                                  GestureDetector(
+                                    onTap: () {
+                                      // Review details
+                                      Get.to(() => ReviewRegistrationView(hospital: {
+                                        'id': hospitalId,
+                                        'name': hospitalName,
+                                        'status': hospitalStatus,
+                                        'manager_name': name,
+                                        'manager_email': email,
+                                      }));
+                                    },
+                                    child: const Text(
+                                      'View',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.adminPrimary,
+                                      ),
+                                    ),
+                                  ),
                               ],
                             ),
                           ),
@@ -936,11 +954,11 @@ class AdminPanelView extends StatelessWidget {
     );
   }
 
-  Widget _buildUserRoleChip(AdminViewModel vm, String roleKey, String label) {
+  Widget _buildManagerFilterChip(AdminViewModel vm, String statusKey, String label) {
     return Obx(() {
-      final isSelected = vm.userRoleFilter.value == roleKey;
+      final isSelected = vm.managerStatusFilter.value == statusKey;
       return GestureDetector(
-        onTap: () => vm.setUserRoleFilter(roleKey),
+        onTap: () => vm.setManagerStatusFilter(statusKey),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(

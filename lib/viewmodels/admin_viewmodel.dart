@@ -20,10 +20,16 @@ class AdminViewModel extends GetxController {
   final approvedHospitals = <Map<String, dynamic>>[].obs;
   final platformStats = <String, dynamic>{}.obs;
 
-  // Platform Users state
+  // Hospital Managers state
+  final managers = <Map<String, dynamic>>[].obs;
+  final isManagersLoading = false.obs;
+  final managerStatusFilter = 'all'.obs; // 'all', 'approved', 'pending', 'rejected', 'suspended'
+  final managerSearchText = ''.obs;
+
+  // Platform Users state (alias)
   final users = <Map<String, dynamic>>[].obs;
   final isUsersLoading = false.obs;
-  final userRoleFilter = 'all'.obs; // 'all', 'manager', 'patient'
+  final userRoleFilter = 'all'.obs;
   final userSearchText = ''.obs;
 
   int _filterRequestGen = 0;
@@ -239,6 +245,40 @@ class AdminViewModel extends GetxController {
       );
       return false;
     }
+  }
+
+  Future<void> fetchManagers({String? status, String? search}) async {
+    isManagersLoading.value = true;
+    try {
+      final targetStatus = status ?? (managerStatusFilter.value == 'all' ? null : managerStatusFilter.value);
+      final targetSearch = search ?? managerSearchText.value;
+      final response = await ApiService.getAdminManagers(status: targetStatus, search: targetSearch);
+      if (response['success'] == true) {
+        final list = (response['data'] as List? ?? [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        managers.assignAll(list);
+      }
+    } catch (_) {
+      Get.snackbar(
+        'Error',
+        'Failed to fetch managers',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+    } finally {
+      isManagersLoading.value = false;
+    }
+  }
+
+  void setManagerStatusFilter(String status) {
+    managerStatusFilter.value = status;
+    fetchManagers(status: status == 'all' ? null : status);
+  }
+
+  void searchManagers(String query) {
+    managerSearchText.value = query;
+    fetchManagers(search: query);
   }
 
   Future<void> fetchUsers({String? role, String? search}) async {
