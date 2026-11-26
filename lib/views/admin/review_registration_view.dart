@@ -17,11 +17,27 @@ class ReviewRegistrationView extends StatefulWidget {
 class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
   final TextEditingController _rejectionController = TextEditingController();
   final AdminViewModel _adminVm = Get.find<AdminViewModel>();
+  bool _isActionLoading = false;
 
   @override
   void dispose() {
     _rejectionController.dispose();
     super.dispose();
+  }
+
+  Future<void> _executeAction(Future<bool> Function() action) async {
+    if (_isActionLoading) return;
+    setState(() => _isActionLoading = true);
+    try {
+      final success = await action();
+      if (success && mounted) {
+        Navigator.of(context).pop(true);
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isActionLoading = false);
+      }
+    }
   }
 
   /// Open a URL in the external browser / PDF viewer
@@ -59,12 +75,9 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
             child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
           ),
           ElevatedButton(
-            onPressed: () async {
-              Get.back(); // close dialog
-              final success = await _adminVm.deleteHospital(hospitalId);
-              if (success) {
-                Get.back(); // close ReviewRegistrationView
-              }
+            onPressed: () {
+              Navigator.of(context).pop(); // close dialog
+              _executeAction(() => _adminVm.deleteHospital(hospitalId));
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,
@@ -384,12 +397,9 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed: () async {
-                    final success = await _adminVm.approveHospital(hospitalId);
-                    if (success) {
-                      Get.back();
-                    }
-                  },
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _executeAction(() => _adminVm.approveHospital(hospitalId)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.adminPrimary,
                     foregroundColor: AppColors.surface,
@@ -398,10 +408,16 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child: const Text(
-                    'Approve hospital',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isActionLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                        )
+                      : const Text(
+                          'Approve hospital',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
               const SizedBox(height: 12),
@@ -411,15 +427,12 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 44,
                 child: TextButton(
-                  onPressed: () async {
-                    final success = await _adminVm.rejectHospital(
-                      hospitalId,
-                      reason: _rejectionController.text.trim(),
-                    );
-                    if (success) {
-                      Get.back();
-                    }
-                  },
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _executeAction(() => _adminVm.rejectHospital(
+                            hospitalId,
+                            reason: _rejectionController.text.trim(),
+                          )),
                   style: TextButton.styleFrom(
                     foregroundColor: AppColors.adminRejectText,
                   ),
@@ -467,17 +480,22 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final success = await _adminVm.approveHospital(hospitalId);
-                    if (success) {
-                      Get.back();
-                    }
-                  },
-                  icon: const Icon(Icons.check, size: 20),
-                  label: const Text(
-                    'Approve hospital',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _executeAction(() => _adminVm.approveHospital(hospitalId)),
+                  icon: _isActionLoading
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.check, size: 20),
+                  label: _isActionLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                        )
+                      : const Text(
+                          'Approve hospital',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.adminPrimary,
                     foregroundColor: AppColors.surface,
@@ -496,17 +514,22 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () async {
-                    final success = await _adminVm.approveHospital(hospitalId);
-                    if (success) {
-                      Get.back();
-                    }
-                  },
-                  icon: const Icon(Icons.refresh, size: 20),
-                  label: const Text(
-                    'Reactivate & Approve',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
-                  ),
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _executeAction(() => _adminVm.approveHospital(hospitalId)),
+                  icon: _isActionLoading
+                      ? const SizedBox.shrink()
+                      : const Icon(Icons.refresh, size: 20),
+                  label: _isActionLoading
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.white),
+                        )
+                      : const Text(
+                          'Reactivate & Approve',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.adminPrimary,
                     foregroundColor: AppColors.surface,
@@ -522,7 +545,9 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 48,
                 child: ElevatedButton.icon(
-                  onPressed: () => _showDeleteDialog(context, hospitalId, name.toString()),
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _showDeleteDialog(context, hospitalId, name.toString()),
                   icon: const Icon(Icons.delete_outline, size: 20),
                   label: const Text(
                     'Delete hospital permanently',
@@ -546,21 +571,26 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
                 width: double.infinity,
                 height: 48,
                 child: OutlinedButton.icon(
-                  onPressed: () async {
-                    final success = await _adminVm.suspendHospital(hospitalId);
-                    if (success) {
-                      Get.back();
-                    }
-                  },
-                  icon: Icon(Icons.block, size: 20, color: Colors.red.shade700),
-                  label: Text(
-                    'Suspend hospital',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.red.shade700,
-                    ),
-                  ),
+                  onPressed: _isActionLoading
+                      ? null
+                      : () => _executeAction(() => _adminVm.suspendHospital(hospitalId)),
+                  icon: _isActionLoading
+                      ? const SizedBox.shrink()
+                      : Icon(Icons.block, size: 20, color: Colors.red.shade700),
+                  label: _isActionLoading
+                      ? SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: CircularProgressIndicator(strokeWidth: 2.2, color: Colors.red.shade700),
+                        )
+                      : Text(
+                          'Suspend hospital',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.red.shade700,
+                          ),
+                        ),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.red.shade300),
                     shape: RoundedRectangleBorder(
