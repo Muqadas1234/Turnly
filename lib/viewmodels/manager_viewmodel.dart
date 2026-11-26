@@ -287,9 +287,20 @@ class ManagerViewModel extends GetxController {
         'certificate_data_type': certificateDataType.value.isNotEmpty ? certificateDataType.value : 'application/pdf',
       };
 
-      final response = isResubmitting.value
+      final shouldResubmit = isResubmitting.value ||
+          (currentHospital.value != null &&
+              currentHospital.value!.status.toLowerCase() == 'rejected');
+
+      var response = shouldResubmit
           ? await ApiService.resubmitHospital(payload)
           : await ApiService.registerHospital(payload);
+
+      // Automatic fallback: if register returned rejected / resubmit note, retry with resubmit
+      if (response['success'] != true &&
+          (response['message']?.toString().toLowerCase().contains('rejected') == true ||
+           response['message']?.toString().toLowerCase().contains('resubmit') == true)) {
+        response = await ApiService.resubmitHospital(payload);
+      }
 
       if (response['success'] == true) {
         if (response['hospital'] is Map<String, dynamic>) {

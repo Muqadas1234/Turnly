@@ -26,6 +26,10 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
     if (args is Map && args['step'] is int) {
       vm.goToStep(args['step'] as int);
     }
+    if (vm.currentHospital.value != null &&
+        vm.currentHospital.value!.status.toLowerCase() == 'rejected') {
+      vm.isResubmitting.value = true;
+    }
   }
 
   String _stepSubtitle(int step) {
