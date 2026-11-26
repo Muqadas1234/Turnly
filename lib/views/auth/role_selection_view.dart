@@ -82,7 +82,7 @@ class RoleSelectionView extends StatelessWidget {
                 iconColor: AppColors.darkGreen,
                 onTap: () {
                   Get.find<AuthViewModel>().selectedRole.value = 'manager';
-                  Get.toNamed(AppRoutes.registrationForm);
+                  Get.toNamed(AppRoutes.login);
                 },
               ),
 

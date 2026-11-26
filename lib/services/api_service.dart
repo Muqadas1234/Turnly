@@ -257,6 +257,40 @@ class ApiService {
     return _decode(response);
   }
 
+  // Permanently delete a hospital
+  static Future<Map<String, dynamic>> deleteHospital(int hospitalId) async {
+    final headers = await _authHeaders();
+    final response = await http.delete(
+      Uri.parse(ApiEndpoints.adminDeleteHospital(hospitalId)),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  // Fetch registered hospital managers with optional hospital status & search
+  static Future<Map<String, dynamic>> getAdminManagers({String? status, String? search}) async {
+    final headers = await _authHeaders();
+    final queryParams = <String, String>{};
+    if (status != null && status.isNotEmpty && status != 'all') queryParams['status'] = status;
+    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
+
+    final uri = Uri.parse(ApiEndpoints.adminManagers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+
+  // Fetch registered platform users (managers, patients)
+  static Future<Map<String, dynamic>> getAdminUsers({String? role, String? search}) async {
+    final headers = await _authHeaders();
+    final queryParams = <String, String>{};
+    if (role != null && role.isNotEmpty && role != 'all') queryParams['role'] = role;
+    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
+
+    final uri = Uri.parse(ApiEndpoints.adminUsers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+
   // Fetch overall platform statistics
   static Future<Map<String, dynamic>> getPlatformStats() async {
     final headers = await _authHeaders();

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/manager_viewmodel.dart';
 
 class PendingApprovalView extends StatefulWidget {
@@ -213,6 +214,22 @@ style: TextStyle(fontWeight: FontWeight.w600),
 ),
 ),
 )),
+const SizedBox(height: 10),
+SizedBox(
+  width: double.infinity,
+  height: 44,
+  child: TextButton.icon(
+    onPressed: () {
+      vm.stopStatusPolling();
+      Get.find<AuthViewModel>().logout();
+    },
+    icon: const Icon(Icons.logout_rounded, size: 16, color: AppColors.textSecondary),
+    label: const Text(
+      'Log out',
+      style: TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
+    ),
+  ),
+),
 ],
 ),
 ),

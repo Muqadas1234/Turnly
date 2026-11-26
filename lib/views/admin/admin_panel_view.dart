@@ -22,7 +22,7 @@ class AdminPanelView extends StatelessWidget {
           case 1:
             return const PlatformStatsView();
           case 2:
-            return _buildHospitalsTab(context, vm);
+            return _buildManagersTab(context, vm);
           case 3:
             return _buildProfileTab(context);
           default:
@@ -35,7 +35,7 @@ class AdminPanelView extends StatelessWidget {
           vm.selectedTab.value = index;
           if (index == 0) vm.fetchHospitals();
           if (index == 1) vm.fetchStats();
-          if (index == 2) vm.fetchApprovedHospitals();
+          if (index == 2) vm.fetchManagers();
         },
         type: BottomNavigationBarType.fixed,
         selectedItemColor: AppColors.adminPrimary,
@@ -56,9 +56,9 @@ class AdminPanelView extends StatelessWidget {
             label: 'Stats',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.local_hospital_outlined, size: 22),
-            activeIcon: Icon(Icons.local_hospital, size: 22),
-            label: 'Hospitals',
+            icon: Icon(Icons.manage_accounts_outlined, size: 22),
+            activeIcon: Icon(Icons.manage_accounts, size: 22),
+            label: 'Managers',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline, size: 22),
@@ -126,7 +126,7 @@ class AdminPanelView extends StatelessWidget {
               ),
               const SizedBox(height: 20),
 
-              // Filter chips row (Pending, Approved, Suspended)
+              // Filter chips row (Pending, Approved, Rejected, Suspended)
               Obx(() => SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 child: Row(
@@ -145,6 +145,14 @@ class AdminPanelView extends StatelessWidget {
                       filterKey: 'approved',
                       isSelected: vm.selectedFilter.value == 'approved',
                       onTap: () => vm.setFilter('approved'),
+                    ),
+                    const SizedBox(width: 8),
+                    _buildFilterChip(
+                      title: 'Rejected',
+                      count: vm.rejectedCount.value,
+                      filterKey: 'rejected',
+                      isSelected: vm.selectedFilter.value == 'rejected',
+                      onTap: () => vm.setFilter('rejected'),
                     ),
                     const SizedBox(width: 8),
                     _buildFilterChip(
@@ -318,6 +326,44 @@ class AdminPanelView extends StatelessWidget {
     await vm.rejectHospital(id, reason: reason);
   }
 
+  // Delete hospital confirmation dialog
+  Future<void> _showDeleteDialog(AdminViewModel vm, int id, String name) async {
+    final confirmed = await Get.dialog<bool>(
+      AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.red),
+            SizedBox(width: 8),
+            Text('Delete Hospital', style: TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to permanently delete "$name"? This will remove all associated departments, doctors, and queues from the database. This action cannot be undone.',
+          style: const TextStyle(height: 1.4, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete Permanently'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await vm.deleteHospital(id);
+    }
+  }
+
   // Hospital card for Approvals tab
   Widget _buildHospitalCard(
       BuildContext context,
@@ -447,6 +493,7 @@ class AdminPanelView extends StatelessWidget {
               ),
             ),
           ),
+          // Action buttons based on status
           if (status == 'pending') ...[
             const SizedBox(height: 10),
             Row(
@@ -489,6 +536,105 @@ class AdminPanelView extends StatelessWidget {
                 ),
               ],
             ),
+          ] else if (status == 'rejected') ...[
+            const SizedBox(height: 10),
+            if ((hospital['rejection_note'] ?? '').toString().isNotEmpty) ...[
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(10),
+                margin: const EdgeInsets.only(bottom: 10),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade100),
+                ),
+                child: Text(
+                  'Reason: ${hospital['rejection_note']}',
+                  style: TextStyle(fontSize: 12.5, color: Colors.red.shade900),
+                ),
+              ),
+            ],
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => vm.approveHospital(hospitalId),
+                icon: const Icon(Icons.check_circle_outline, size: 18),
+                label: const Text(
+                  'Approve hospital',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.adminPrimary,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ] else if (status == 'suspended') ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => vm.approveHospital(hospitalId),
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text(
+                      'Reactivate',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.adminPrimary,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showDeleteDialog(vm, hospitalId, name),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text(
+                      'Delete',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.red.shade50,
+                      foregroundColor: Colors.red.shade800,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (status == 'approved') ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => vm.suspendHospital(hospitalId),
+                icon: Icon(Icons.block, size: 18, color: Colors.red.shade700),
+                label: Text(
+                  'Suspend hospital',
+                  style: TextStyle(color: Colors.red.shade700, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.red.shade300),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
           ],
         ],
       ),
@@ -529,11 +675,13 @@ class AdminPanelView extends StatelessWidget {
     );
   }
 
-  // Tab 2: Approved Hospitals Management screen
-  Widget _buildHospitalsTab(BuildContext context, AdminViewModel vm) {
+  // Tab 2: Registered Hospital Managers screen
+  Widget _buildManagersTab(BuildContext context, AdminViewModel vm) {
+    final searchController = TextEditingController(text: vm.managerSearchText.value);
+
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: () => vm.fetchApprovedHospitals(),
+        onRefresh: () => vm.fetchManagers(),
         color: AppColors.adminPrimary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
@@ -542,7 +690,7 @@ class AdminPanelView extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Active Hospitals',
+                'Hospital Managers',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -551,88 +699,247 @@ class AdminPanelView extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               const Text(
-                'Manage approved hospitals on the platform',
+                'Overview of registered hospital managers and facilities',
                 style: TextStyle(
                   fontSize: 14,
                   color: AppColors.textSecondary,
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 16),
+
+              // Search field
+              TextField(
+                controller: searchController,
+                decoration: InputDecoration(
+                  hintText: 'Search by manager name, email, or hospital...',
+                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textHint),
+                  prefixIcon: const Icon(Icons.search, size: 20, color: AppColors.textSecondary),
+                  suffixIcon: searchController.text.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            searchController.clear();
+                            vm.searchManagers('');
+                          },
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: AppColors.surface,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.adminPrimary, width: 1.5),
+                  ),
+                ),
+                onSubmitted: (val) => vm.searchManagers(val),
+                onChanged: (val) {
+                  if (val.isEmpty) vm.searchManagers('');
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Status Filter Chips (All, Approved, Pending, Rejected, Suspended)
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildManagerFilterChip(vm, 'all', 'All Managers'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'approved', 'Approved'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'pending', 'Pending'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'rejected', 'Rejected'),
+                    const SizedBox(width: 8),
+                    _buildManagerFilterChip(vm, 'suspended', 'Suspended'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Managers List
               Obx(() {
-                if (vm.approvedHospitals.isEmpty) {
+                if (vm.isManagersLoading.value) {
                   return const Padding(
                     padding: EdgeInsets.symmetric(vertical: 60),
                     child: Center(
-                      child: Text(
-                        'No approved hospitals yet',
-                        style: TextStyle(color: AppColors.textSecondary),
+                      child: CircularProgressIndicator(color: AppColors.adminPrimary),
+                    ),
+                  );
+                }
+
+                if (vm.managers.isEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 60),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.manage_accounts_outlined, size: 48, color: Colors.grey.shade400),
+                          const SizedBox(height: 12),
+                          const Text(
+                            'No managers found',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppColors.textSecondary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   );
                 }
+
                 return ListView.separated(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  itemCount: vm.approvedHospitals.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemCount: vm.managers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
                   itemBuilder: (context, index) {
-                    final hospital = vm.approvedHospitals[index];
-                    final hospitalId = hospital['id'] as int? ?? 0;
+                    final manager = vm.managers[index];
+                    final name = (manager['name'] ?? 'Manager').toString();
+                    final email = (manager['email'] ?? '').toString();
+                    final phone = (manager['phone'] ?? '').toString();
+                    final hospitalId = manager['hospital_id'] as int?;
+                    final hospitalName = (manager['hospital_name'] ?? '').toString();
+                    final hospitalStatus = (manager['hospital_status'] ?? '').toString().toLowerCase();
+
+                    final words = name.trim().split(RegExp(r'\s+'));
+                    final initials = words.length >= 2
+                        ? '${words[0][0]}${words[1][0]}'.toUpperCase()
+                        : name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase();
+
                     return Container(
-                      padding: const EdgeInsets.all(16),
+                      padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
                         color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(14),
                         border: Border.all(color: AppColors.border),
                       ),
-                      child: Row(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: Colors.green.shade50,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Icon(
-                              Icons.local_hospital,
-                              size: 22,
-                              color: Colors.green.shade700,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  hospital['name'] ?? 'Unnamed Hospital',
+                          Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 22,
+                                backgroundColor: AppColors.tealLight,
+                                child: Text(
+                                  initials,
                                   style: const TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: AppColors.textPrimary,
+                                    color: AppColors.tealPrimary,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        fontSize: 15.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.email_outlined, size: 13, color: AppColors.textSecondary),
+                                        const SizedBox(width: 4),
+                                        Expanded(
+                                          child: Text(
+                                            email,
+                                            style: const TextStyle(fontSize: 12.5, color: AppColors.textSecondary),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (hospitalStatus.isNotEmpty)
+                                _buildStatusBadge(hospitalStatus),
+                            ],
+                          ),
+                          if (phone.isNotEmpty) ...[
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.phone_outlined, size: 13, color: AppColors.textSecondary),
+                                const SizedBox(width: 5),
                                 Text(
-                                  hospital['address'] ?? 'No address',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: AppColors.textSecondary,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                                  phone,
+                                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                                 ),
                               ],
                             ),
-                          ),
-                          IconButton(
-                            tooltip: 'Suspend Hospital',
-                            icon: Icon(
-                              Icons.block,
-                              color: Colors.red.shade600,
-                              size: 22,
+                          ],
+                          const SizedBox(height: 10),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: AppColors.background,
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: AppColors.border),
                             ),
-                            onPressed: () => vm.suspendHospital(hospitalId),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.local_hospital_outlined,
+                                  size: 16,
+                                  color: hospitalName.isNotEmpty ? AppColors.tealPrimary : Colors.grey,
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    hospitalName.isNotEmpty ? hospitalName : 'No hospital registered yet',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: hospitalName.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                                      color: hospitalName.isNotEmpty ? AppColors.textPrimary : AppColors.textHint,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                if (hospitalId != null && hospitalId > 0)
+                                  GestureDetector(
+                                    onTap: () {
+                                      // Review details
+                                      Get.to(() => ReviewRegistrationView(hospital: {
+                                        'id': hospitalId,
+                                        'name': hospitalName,
+                                        'status': hospitalStatus,
+                                        'manager_name': name,
+                                        'manager_email': email,
+                                      }));
+                                    },
+                                    child: const Text(
+                                      'View',
+                                      style: TextStyle(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                        color: AppColors.adminPrimary,
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -645,6 +952,33 @@ class AdminPanelView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildManagerFilterChip(AdminViewModel vm, String statusKey, String label) {
+    return Obx(() {
+      final isSelected = vm.managerStatusFilter.value == statusKey;
+      return GestureDetector(
+        onTap: () => vm.setManagerStatusFilter(statusKey),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          decoration: BoxDecoration(
+            color: isSelected ? AppColors.adminPrimary : AppColors.surface,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: isSelected ? AppColors.adminPrimary : AppColors.border,
+            ),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : AppColors.textSecondary,
+            ),
+          ),
+        ),
+      );
+    });
   }
 
   // Tab 3: Admin Profile screen

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../utils/app_colors.dart';
 import '../../utils/routes.dart';
+import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/manager_viewmodel.dart';
 
 // M9: Registration Rejected Screen
@@ -12,6 +13,7 @@ class RegistrationRejectedView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final vm = Get.find<ManagerViewModel>();
+    final authVm = Get.find<AuthViewModel>();
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -116,15 +118,16 @@ class RegistrationRejectedView extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   height: 50,
-                  child: ElevatedButton(
+                  child: ElevatedButton.icon(
                     onPressed: () {
                       if (hospital != null) {
                         vm.prefillFromHospital(hospital);
                       }
                       vm.isResubmitting.value = true;
-                      vm.goToStep(3);
-                      Get.toNamed(AppRoutes.registrationForm, arguments: {'step': 3});
+                      vm.goToStep(1);
+                      Get.toNamed(AppRoutes.registrationForm, arguments: {'step': 1});
                     },
+                    icon: const Icon(Icons.edit_note_rounded, size: 22),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.tealPrimary,
                       foregroundColor: Colors.white,
@@ -133,8 +136,8 @@ class RegistrationRejectedView extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: const Text(
-                      'Edit & resubmit',
+                    label: const Text(
+                      'Edit application',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -163,6 +166,17 @@ class RegistrationRejectedView extends StatelessWidget {
                       'Contact support',
                       style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
                     ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: authVm.logout,
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                  ),
+                  child: const Text(
+                    'Log out',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],

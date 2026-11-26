@@ -153,9 +153,9 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
         selectedFontSize: 11.5,
         unselectedFontSize: 11.5,
         onTap: (index) {
-          if (index == 1) Get.offNamed(AppRoutes.queueControl);
-          if (index == 2) Get.offNamed(AppRoutes.manageDepartments);
-          if (index == 3) Get.offNamed(AppRoutes.profile);
+          if (index == 1) Get.toNamed(AppRoutes.queueControl);
+          if (index == 2) Get.toNamed(AppRoutes.doctorManagement);
+          if (index == 3) Get.toNamed(AppRoutes.profile);
         },
         items: const [
           BottomNavigationBarItem(

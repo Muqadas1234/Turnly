@@ -38,7 +38,10 @@ class ApiEndpoints {
   static String adminApproveHospital(int id) => '$baseUrl/admin/hospitals/$id/approve';
   static String adminRejectHospital(int id) => '$baseUrl/admin/hospitals/$id/reject';
   static String adminSuspendHospital(int id) => '$baseUrl/admin/hospitals/$id/suspend';
+  static String adminDeleteHospital(int id) => '$baseUrl/admin/hospitals/$id';
   static String get adminStats => '$baseUrl/admin/stats';
+  static String get adminManagers => '$baseUrl/admin/managers';
+  static String get adminUsers => '$baseUrl/admin/users';
 
   // Department Management Endpoints
   static String get departmentsUrl => '$baseUrl/departments';
@@ -54,6 +57,11 @@ class ApiEndpoints {
   // Token Booking & Queue Preview Endpoints
   static String get bookTokenUrl => '$baseUrl/patient/tokens/book';
   static String doctorQueueStatus(int id) => '$baseUrl/patient/doctors/$id/queue-status';
+
+  // Hospital Document, Certificate & Logo Endpoints
+  static String hospitalDocumentUrl(int id) => '$baseUrl/hospitals/$id/document';
+  static String hospitalCertificateUrl(int id) => '$baseUrl/hospitals/$id/certificate';
+  static String hospitalLogoUrl(int id) => '$baseUrl/hospitals/$id/logo';
 
   // Forgot & Reset Password Endpoints
   static String get forgotPasswordUrl => '$baseUrl/auth/forgot-password';

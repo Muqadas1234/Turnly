@@ -13,6 +13,7 @@ class ManagerViewModel extends GetxController {
   final errorMessage = ''.obs;
   Timer? _statusTimer;
 
+
   void startStatusPolling() {
     if (_statusTimer != null && _statusTimer!.isActive) return;
     _statusTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
@@ -37,9 +38,9 @@ class ManagerViewModel extends GetxController {
   final opdTimingsC = TextEditingController(text: '9:00 AM - 8:00 PM');
 
   // Step 2 (M6): Manager details
-  final managerNameC = TextEditingController(text: 'Dr. Farhan Ali');
-  final managerEmailC = TextEditingController(text: 'farhan@cgh.pk');
-  final managerPhoneC = TextEditingController(text: '+92 300 5551234');
+  final managerNameC = TextEditingController();
+  final managerEmailC = TextEditingController();
+  final managerPhoneC = TextEditingController();
   final managerDesignation = 'Medical Superintendent'.obs;
   final isAuthorizedConfirmed = true.obs;
 
@@ -56,26 +57,33 @@ class ManagerViewModel extends GetxController {
     'Administrator',
   ];
 
-  // Step 3 (M7): Logo & verification documents
+  //  Logo & verification documents
   final logoFileName = ''.obs;
   final logoFileSize = ''.obs;
   final logoUrl = ''.obs;
+  final logoBase64 = ''.obs;
 
-  final licenseDocName = 'license_cgh.pdf'.obs;
-  final licenseDocSize = '1.2 MB'.obs;
+  // License document (file 1) - required
+  final licenseDocName = ''.obs;
+  final licenseDocSize = ''.obs;
   final licenseDocUrl = ''.obs;
+  final documentBase64 = ''.obs;
+  final documentType = 'application/pdf'.obs;
 
+  // Registration certificate (file 2) - optional
   final certificateDocName = ''.obs;
   final certificateDocSize = ''.obs;
   final certificateDocUrl = ''.obs;
+  final certificateBase64 = ''.obs;
+  final certificateDataType = 'application/pdf'.obs;
 
-  // Step 4 (M8): Review & submit
+  // Review & submit
   final isTermsConfirmed = true.obs;
 
-  // --- Current Hospital Status (M9 Rejected / M11 Suspended) ---
+  //  Current Hospital Status
   final currentHospital = Rxn<HospitalModel>();
 
-  // --- Manage Departments (M10) ---
+  // Manage Departments
   final departments = <DepartmentModel>[].obs;
   final departmentSearchQuery = ''.obs;
 
@@ -89,19 +97,29 @@ class ManagerViewModel extends GetxController {
   void onInit() {
     super.onInit();
     _seedDefaultDepartmentsIfEmpty();
+    _prefillManagerFromAuth();
+  }
+
+  void _prefillManagerFromAuth() {
+    ApiService.getUserData().then((user) {
+      if (user != null) {
+        if (user['email'] != null && user['email'].toString().isNotEmpty) {
+          managerEmailC.text = user['email'].toString();
+        }
+        if (user['name'] != null && user['name'].toString().isNotEmpty) {
+          managerNameC.text = user['name'].toString();
+        }
+      }
+    });
   }
 
   @override
   void onClose() {
-    hospitalNameC.dispose();
-    cityC.dispose();
-    addressC.dispose();
-    opdTimingsC.dispose();
-    managerNameC.dispose();
-    managerEmailC.dispose();
-    managerPhoneC.dispose();
+    _statusTimer?.cancel();
     super.onClose();
   }
+
+
 
   void _seedDefaultDepartmentsIfEmpty() {
     if (departments.isEmpty) {
@@ -166,22 +184,39 @@ class ManagerViewModel extends GetxController {
     }
   }
 
-  void attachLogo({required String name, required String size, String url = ''}) {
+  void attachLogo({required String name, required String size, String url = '', String base64 = ''}) {
     logoFileName.value = name;
     logoFileSize.value = size;
     logoUrl.value = url;
+    logoBase64.value = base64;
   }
 
-  void attachLicense({required String name, required String size, String url = ''}) {
+  void attachLicense({
+    required String name,
+    required String size,
+    String url = '',
+    String base64 = '',
+    String mimeType = 'application/pdf',
+  }) {
     licenseDocName.value = name;
     licenseDocSize.value = size;
     licenseDocUrl.value = url;
+    documentBase64.value = base64;
+    documentType.value = mimeType;
   }
 
-  void attachCertificate({required String name, required String size, String url = ''}) {
+  void attachCertificate({
+    required String name,
+    required String size,
+    String url = '',
+    String base64 = '',
+    String mimeType = 'application/pdf',
+  }) {
     certificateDocName.value = name;
     certificateDocSize.value = size;
     certificateDocUrl.value = url;
+    certificateBase64.value = base64;
+    certificateDataType.value = mimeType;
   }
 
   void prefillFromHospital(HospitalModel hospital) {
@@ -234,21 +269,38 @@ class ManagerViewModel extends GetxController {
         'manager_email': managerEmailC.text.trim(),
         'manager_phone': managerPhoneC.text.trim(),
         'manager_designation': managerDesignation.value,
-        'license_doc_name': licenseDocName.value,
-        'license_doc_size': licenseDocSize.value,
-        'license_doc_url': licenseDocUrl.value,
-        'certificate_doc_name': certificateDocName.value.isNotEmpty
-            ? certificateDocName.value
-            : 'cert_cgh.pdf',
-        'certificate_doc_size': certificateDocSize.value.isNotEmpty
-            ? certificateDocSize.value
-            : '850 KB',
-        'certificate_doc_url': certificateDocUrl.value,
+        'license_doc_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
+        'license_doc_size': licenseDocSize.value.isNotEmpty ? licenseDocSize.value : null,
+        'license_doc_url': licenseDocUrl.value.isNotEmpty ? licenseDocUrl.value : null,
+        'certificate_doc_name': certificateDocName.value.isNotEmpty ? certificateDocName.value : null,
+        'certificate_doc_size': certificateDocSize.value.isNotEmpty ? certificateDocSize.value : null,
+        'certificate_doc_url': certificateDocUrl.value.isNotEmpty ? certificateDocUrl.value : null,
+        // Logo binary
+        'logo_base64': logoBase64.value.isNotEmpty ? logoBase64.value : null,
+        'logo_name': logoFileName.value.isNotEmpty ? logoFileName.value : null,
+        // License document binary
+        'document_base64': documentBase64.value.isNotEmpty ? documentBase64.value : null,
+        'document_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
+        'document_type': documentType.value.isNotEmpty ? documentType.value : 'application/pdf',
+        // Certificate document binary
+        'certificate_base64': certificateBase64.value.isNotEmpty ? certificateBase64.value : null,
+        'certificate_data_type': certificateDataType.value.isNotEmpty ? certificateDataType.value : 'application/pdf',
       };
 
-      final response = isResubmitting.value
+      final shouldResubmit = isResubmitting.value ||
+          (currentHospital.value != null &&
+              currentHospital.value!.status.toLowerCase() == 'rejected');
+
+      var response = shouldResubmit
           ? await ApiService.resubmitHospital(payload)
           : await ApiService.registerHospital(payload);
+
+      // Automatic fallback: if register returned rejected / resubmit note, retry with resubmit
+      if (response['success'] != true &&
+          (response['message']?.toString().toLowerCase().contains('rejected') == true ||
+           response['message']?.toString().toLowerCase().contains('resubmit') == true)) {
+        response = await ApiService.resubmitHospital(payload);
+      }
 
       if (response['success'] == true) {
         if (response['hospital'] is Map<String, dynamic>) {
@@ -263,8 +315,8 @@ class ManagerViewModel extends GetxController {
           backgroundColor: Colors.green.shade50,
           colorText: Colors.green.shade800,
         );
-        // Move forward into the manager flow (Departments / Dashboard)
-        Get.offAllNamed(AppRoutes.manageDepartments);
+        // Navigate to pending approval view to await admin review
+        Get.offAllNamed(AppRoutes.pendingApproval);
       } else {
         errorMessage.value = response['message'] ?? 'Submission failed';
         Get.snackbar(
@@ -296,9 +348,16 @@ class ManagerViewModel extends GetxController {
         );
         currentHospital.value = hosp;
         if (routeByStatus) {
-          if (hosp.status == 'rejected') {
+          if (hosp.status == 'approved') {
+            stopStatusPolling();
+            Get.offAllNamed(AppRoutes.managerDashboard);
+          } else if (hosp.status == 'pending') {
+            Get.offAllNamed(AppRoutes.pendingApproval);
+          } else if (hosp.status == 'rejected') {
+            stopStatusPolling();
             Get.offAllNamed(AppRoutes.registrationRejected);
           } else if (hosp.status == 'suspended') {
+            stopStatusPolling();
             Get.offAllNamed(AppRoutes.hospitalSuspended);
           }
         }
@@ -418,4 +477,6 @@ class ManagerViewModel extends GetxController {
       isLoading.value = false;
     }
   }
+
+  
 }
