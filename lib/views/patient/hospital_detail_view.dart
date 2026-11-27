@@ -405,10 +405,25 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
     final name = doc['name'] ?? 'Doctor';
     final spec = doc['specialization'] ?? 'Specialist';
     final exp = int.tryParse(doc['experience_years']?.toString() ?? '0') ?? 0;
+    
     // Dynamic availability_hours from the database (set by hospital manager)
-    final hours = doc['availability_hours']?.toString() ?? 'Schedule not set';
+    final rawHours = doc['availability_hours']?.toString();
+    final scheduleDays = doc['schedule_days'];
+    final scheduleFrom = doc['schedule_from'];
+    final scheduleTo = doc['schedule_to'];
+
+    String hours = 'Mon - Sat · 09:00 - 17:00';
+    if (rawHours != null && rawHours.trim().isNotEmpty && rawHours != 'Schedule not set') {
+      hours = rawHours;
+    } else if (scheduleFrom != null && scheduleTo != null) {
+      final daysText = (scheduleDays is List && scheduleDays.isNotEmpty)
+          ? (scheduleDays.length >= 6 ? 'Mon - Sat' : scheduleDays.join(', '))
+          : 'Mon - Sat';
+      hours = '$daysText · $scheduleFrom - $scheduleTo';
+    }
+
     // Dynamic availability status from the database
-    final isAvailable = doc['is_available'] == true;
+    final isAvailable = doc['is_available'] != false;
     final isSelected = selectedDocId != null && selectedDocId == doc['id'];
 
     final docWords = name.trim().split(RegExp(r'\s+'));
@@ -417,7 +432,7 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
         : name.substring(0, name.length >= 2 ? 2 : name.length).toUpperCase();
 
     return InkWell(
-      onTap: isAvailable ? () => _patientVm.selectDoctor(doc) : null,
+      onTap: () => _patientVm.selectDoctor(doc),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: const EdgeInsets.all(14),
@@ -507,30 +522,46 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                   ),
                 ),
                 const SizedBox(height: 6),
-                // Book button — disabled if doctor is unavailable
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: isSelected
-                        ? AppColors.adminPrimary
-                        : (isAvailable ? AppColors.surface : AppColors.border),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isAvailable
-                          ? AppColors.adminPrimary
-                          : AppColors.border,
-                    ),
-                  ),
-                  child: Text(
-                    'Book',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
+                // Book button — tapping directly opens booking screen for this doctor
+                InkWell(
+                  onTap: isAvailable
+                      ? () {
+                          _patientVm.selectDoctor(doc);
+                          Get.toNamed(
+                            AppRoutes.booking,
+                            arguments: {
+                              'doctor': doc,
+                              'hospital': _patientVm.currentHospital.value,
+                              'hospitalId': _resolvedHospitalId,
+                            },
+                          );
+                        }
+                      : null,
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
                       color: isSelected
-                          ? Colors.white
-                          : (isAvailable
                           ? AppColors.adminPrimary
-                          : AppColors.textSecondary),
+                          : (isAvailable ? AppColors.adminPrimaryLight : AppColors.border),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isAvailable
+                            ? AppColors.adminPrimary
+                            : AppColors.border,
+                      ),
+                    ),
+                    child: Text(
+                      'Book',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: isSelected
+                            ? Colors.white
+                            : (isAvailable
+                                ? AppColors.adminPrimaryDark
+                                : AppColors.textSecondary),
+                      ),
                     ),
                   ),
                 ),
