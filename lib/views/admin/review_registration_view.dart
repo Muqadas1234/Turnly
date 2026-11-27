@@ -47,10 +47,17 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
       if (await canLaunchUrl(uri)) {
         await launchUrl(uri, mode: LaunchMode.externalApplication);
       } else {
-        Get.snackbar('Error', 'Could not open: $url');
+        final launched = await launchUrl(uri, mode: LaunchMode.platformDefault);
+        if (!launched) {
+          Get.snackbar('Error', 'Could not open: $url');
+        }
       }
     } catch (_) {
-      Get.snackbar('Error', 'Unable to open file');
+      try {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      } catch (e) {
+        Get.snackbar('Error', 'Unable to open file in browser');
+      }
     }
   }
 
@@ -118,7 +125,11 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         (rawDocName != null &&
             rawDocName.toString().trim().isNotEmpty &&
             rawDocName.toString() != 'null');
-    final licenseDocName = hasDoc ? rawDocName.toString() : '';
+    final licenseDocName = (rawDocName != null &&
+            rawDocName.toString().trim().isNotEmpty &&
+            rawDocName.toString() != 'null')
+        ? rawDocName.toString()
+        : (hasDoc ? 'Hospital License.pdf' : '');
     final licenseDocSize = h['license_doc_size']?.toString() ?? '';
 
     // ── Registration certificate (file 2) ──
@@ -127,7 +138,11 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         (rawCertName != null &&
             rawCertName.toString().trim().isNotEmpty &&
             rawCertName.toString() != 'null');
-    final certDocName = hasCert ? rawCertName.toString() : '';
+    final certDocName = (rawCertName != null &&
+            rawCertName.toString().trim().isNotEmpty &&
+            rawCertName.toString() != 'null')
+        ? rawCertName.toString()
+        : (hasCert ? 'Registration Certificate.pdf' : '');
     final certDocSize = h['certificate_doc_size']?.toString() ?? '';
 
     // ── Hospital logo (file 3) ──
@@ -136,7 +151,11 @@ class _ReviewRegistrationViewState extends State<ReviewRegistrationView> {
         (rawLogoName != null &&
             rawLogoName.toString().trim().isNotEmpty &&
             rawLogoName.toString() != 'null');
-    final logoFileName = hasLogo ? rawLogoName.toString() : '';
+    final logoFileName = (rawLogoName != null &&
+            rawLogoName.toString().trim().isNotEmpty &&
+            rawLogoName.toString() != 'null')
+        ? rawLogoName.toString()
+        : (hasLogo ? 'Hospital Logo.png' : '');
 
     // Status badge
     final Color statusBg;

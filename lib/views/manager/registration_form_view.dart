@@ -178,7 +178,7 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
           ),
           const SizedBox(height: 6),
           Obx(() => DropdownButtonFormField<String>(
-                value: vm.hospitalType.value,
+                initialValue: vm.hospitalType.value,
                 decoration: _tealInputDecoration(hint: 'Select type'),
                 items: ManagerViewModel.hospitalTypes
                     .map((t) => DropdownMenuItem(value: t, child: Text(t)))
@@ -265,7 +265,7 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
           ),
           const SizedBox(height: 6),
           Obx(() => DropdownButtonFormField<String>(
-                value: vm.managerDesignation.value,
+                initialValue: vm.managerDesignation.value,
                 decoration: _tealInputDecoration(hint: 'Select designation'),
                 icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.textSecondary),
                 items: ManagerViewModel.designations
