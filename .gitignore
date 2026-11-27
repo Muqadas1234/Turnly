@@ -10,3 +10,6 @@ functions/lib/
 android/local.properties
 android/.kotlin/
 **/GeneratedPluginRegistrant.java
+
+# Firebase client config
+android/app/google-services.json
