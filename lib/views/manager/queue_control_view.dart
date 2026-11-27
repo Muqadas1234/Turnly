@@ -77,7 +77,71 @@ class _QueueControlViewState extends State<QueueControlView> {
     return fallback;
   }
 
-  int _selectedTabIndex = 0; // 0 = Patient Tokens, 1 = Doctor Queues
+  String _tokenFilter = 'all'; // all, waiting, serving, done
+
+  List<Map<String, dynamic>> get _filteredTokens {
+    if (_tokenFilter == 'waiting') {
+      return vm.todayTokens.where((t) => (t['status'] ?? 'waiting') == 'waiting').toList();
+    }
+    if (_tokenFilter == 'serving') {
+      return vm.todayTokens.where((t) => t['status'] == 'serving').toList();
+    }
+    if (_tokenFilter == 'done') {
+      return vm.todayTokens.where((t) => t['status'] == 'done').toList();
+    }
+    return vm.todayTokens;
+  }
+
+  Widget _filterChip(String filterKey, String label) {
+    final isSelected = _tokenFilter == filterKey;
+    return GestureDetector(
+      onTap: () => setState(() => _tokenFilter = filterKey),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.tealPrimary : AppColors.surface,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.tealPrimary : AppColors.border,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected ? Colors.white : AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _metricBadge(String label, String value, IconData icon, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: color),
+          ),
+          const SizedBox(height: 1),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
+          ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _completeToken(int tokenId) async {
     try {
@@ -381,16 +445,6 @@ class _QueueControlViewState extends State<QueueControlView> {
     }
   }
 
-  Future<void> _completeCurrent(int doctorId) async {
-    _busy.add(doctorId);
-    try {
-      _toast(await ManagerApi.completeCurrent(doctorId, date: _dateString), ok: 'Consultation marked as completed');
-    } finally {
-      _busy.remove(doctorId);
-      await vm.fetchDashboard(date: _dateString);
-    }
-  }
-
   void _openQueue(int doctorId, String doctorName) {
     showModalBottomSheet(
       context: context,
@@ -464,347 +518,128 @@ class _QueueControlViewState extends State<QueueControlView> {
                   ],
                 ),
               ),
-              _summaryCard(
-                'Patients waiting',
-                vm.inQueueNow.value.toString(),
-                Icons.groups_outlined,
+              // 4 Summary Metrics in a single modern row
+              Row(
+                children: [
+                  Expanded(child: _metricBadge('Booked', '${vm.todayTokens.length}', Icons.confirmation_num_outlined, AppColors.tealPrimary)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _metricBadge('Waiting', '${vm.todayTokens.where((t) => (t['status'] ?? 'waiting') == 'waiting').length}', Icons.schedule_rounded, const Color(0xFFF57C00))),
+                  const SizedBox(width: 8),
+                  Expanded(child: _metricBadge('In Room', '${vm.todayTokens.where((t) => t['status'] == 'serving').length}', Icons.record_voice_over_rounded, AppColors.success)),
+                  const SizedBox(width: 8),
+                  Expanded(child: _metricBadge('Done', '${vm.todayTokens.where((t) => t['status'] == 'done').length}', Icons.check_circle_outline_rounded, AppColors.textSecondary)),
+                ],
               ),
-              // Tab Switcher between "Patient Tokens" and "Doctor Queues"
-              Container(
-                margin: const EdgeInsets.only(top: 14, bottom: 16),
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.border),
-                ),
+              const SizedBox(height: 16),
+              // Section Header
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          DateUtils.isSameDay(_selectedDate, DateTime.now())
+                              ? 'Today’s Patient Appointments'
+                              : 'Appointments for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
+                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Each card has patient details, assigned doctor & call controls',
+                          style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              // Filter Chips
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
                 child: Row(
                   children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTabIndex = 0),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTabIndex == 0 ? AppColors.tealPrimary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.confirmation_num_outlined,
-                                size: 16,
-                                color: _selectedTabIndex == 0 ? Colors.white : AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Patient Tokens (${vm.todayTokens.length})',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedTabIndex == 0 ? Colors.white : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedTabIndex = 1),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                          decoration: BoxDecoration(
-                            color: _selectedTabIndex == 1 ? AppColors.tealPrimary : Colors.transparent,
-                            borderRadius: BorderRadius.circular(9),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.medical_services_outlined,
-                                size: 16,
-                                color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Doctor Queues (${vm.todayQueues.length})',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
+                    _filterChip('all', 'All (${vm.todayTokens.length})'),
+                    const SizedBox(width: 6),
+                    _filterChip('waiting', 'Waiting (${vm.todayTokens.where((t) => (t['status'] ?? 'waiting') == 'waiting').length})'),
+                    const SizedBox(width: 6),
+                    _filterChip('serving', 'In Room (${vm.todayTokens.where((t) => t['status'] == 'serving').length})'),
+                    const SizedBox(width: 6),
+                    _filterChip('done', 'Completed (${vm.todayTokens.where((t) => t['status'] == 'done').length})'),
                   ],
                 ),
               ),
-              if (_selectedTabIndex == 0) ...[
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            DateUtils.isSameDay(_selectedDate, DateTime.now())
-                                ? 'Today’s Patient Tokens'
-                                : 'Patient Tokens for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
-                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Live list of patient tokens · Tap any card to view full patient & doctor details',
-                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (vm.todayTokens.isEmpty)
-                  _emptyState('No patient tokens booked for this date yet. When a patient books a token, it will appear here in real-time with full details.')
-                else
-                  ...vm.todayTokens.map((token) => _patientTokenCard(token)),
-              ] else ...[
-                Text(
-                  DateUtils.isSameDay(_selectedDate, DateTime.now())
-                      ? 'Today’s doctor queues'
-                      : 'Doctor queues for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
-                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                ),
-                const SizedBox(height: 10),
-                if (vm.errorMessage.value.isNotEmpty && vm.todayQueues.isEmpty)
-                  _emptyState(vm.errorMessage.value)
-                else if (vm.todayQueues.isEmpty)
-                  _emptyState('No doctors yet. Add doctors from the Doctors tab to start managing queues.')
-                else
-                  ...vm.todayQueues.map((queue) {
-                    final doctorId = _id(queue['id'] ?? queue['doctor_id']);
-                  final doctor = _value(queue, ['name', 'doctor_name'], fallback: 'Doctor');
-                  final qualification = _value(queue, ['qualification'], fallback: '');
-                  final serving = _value(queue, ['now_serving'], fallback: 'none');
-                  final servingName = _value(queue, ['now_serving_patient_name'], fallback: '');
-                  final servingAge = queue['now_serving_patient_age'];
-                  final servingRelation = (queue['now_serving_relation'] ?? '').toString();
-                  final servingPhone = (queue['now_serving_patient_phone'] ?? '').toString();
-                  final servingPriority = queue['now_serving_priority'] == true || queue['now_serving_priority']?.toString() == 'true';
-                  final servingPriorityCat = (queue['now_serving_priority_category'] ?? '').toString();
-                  final servingNotes = (queue['now_serving_notes'] ?? '').toString();
-                  final waiting = _value(queue, ['waiting'], fallback: '0');
-                  final room = _value(queue, ['room']);
-                  final dept = _value(queue, ['department_name'], fallback: '');
-                  final timing = _value(queue, ['availability_hours'], fallback: '09:00 - 17:00');
-                  final isServing = serving != 'none' && serving.isNotEmpty && serving != 'null';
-                  final waitingCount = int.tryParse(waiting) ?? 0;
+              const SizedBox(height: 12),
+              // Unified Token Cards List
+              if (_filteredTokens.isEmpty)
+                _emptyState('No appointments found for this date. When patients book tokens, they will appear here with complete patient and doctor details.')
+              else
+                ..._filteredTokens.map((token) => _patientTokenCard(token)),
 
-                  return Card(
-                    elevation: 0,
-                    margin: const EdgeInsets.only(bottom: 10),
+              const SizedBox(height: 14),
+              // Collapsible Doctor OPD Directory at the bottom
+              if (vm.todayQueues.isNotEmpty) ...[
+                Container(
+                  decoration: BoxDecoration(
                     color: AppColors.surface,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      side: const BorderSide(color: AppColors.border),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              const CircleAvatar(
-                                backgroundColor: AppColors.tealLight,
-                                child: Icon(Icons.medical_services_outlined, color: AppColors.tealPrimary),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(doctor, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
-                                    if (qualification.isNotEmpty) ...[
-                                      const SizedBox(height: 1),
-                                      Text(qualification, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.tealPrimary)),
-                                    ],
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      '${dept.isEmpty ? '' : '$dept · '}Room $room · 🕒 $timing',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                children: [
-                                  Text(waiting,
-                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.tealPrimary)),
-                                  const Text('waiting', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
-                                ],
-                              ),
-                            ],
-                          ),
-                          if (isServing) ...[
-                            const SizedBox(height: 10),
-                            InkWell(
-                              onTap: () {
-                                showPatientDoctorDetailsSheet(
-                                  context,
-                                  token: {
-                                    'token_number': serving,
-                                    'patient_name': servingName,
-                                    'patient_age': servingAge,
-                                    'relation': servingRelation,
-                                    'account_phone': servingPhone,
-                                    'priority': servingPriority,
-                                    'priority_category': servingPriorityCat,
-                                    'notes': servingNotes,
-                                    'doctor_name': doctor,
-                                    'qualification': qualification,
-                                    'department_name': dept,
-                                    'room': room,
-                                    'availability_hours': timing,
-                                    'status': 'serving',
-                                  },
-                                  doctor: queue,
-                                );
-                              },
-                              borderRadius: BorderRadius.circular(10),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                decoration: BoxDecoration(
-                                  color: AppColors.successBg,
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(color: AppColors.success.withValues(alpha: 0.35)),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        const Icon(Icons.record_voice_over_rounded, size: 16, color: AppColors.success),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            'Serving: Token #$serving${servingName.isNotEmpty ? ' · $servingName' : ''}',
-                                            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.success),
-                                          ),
-                                        ),
-                                        const Icon(Icons.info_outline_rounded, size: 15, color: AppColors.success),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 3),
-                                    Text(
-                                      '${servingRelation.isNotEmpty ? servingRelation : 'Self'}${servingAge != null ? ' · $servingAge yrs' : ''}${servingPhone.isNotEmpty ? ' · 📞 $servingPhone' : ''}',
-                                      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
-                                    ),
-                                    if (servingPriority || servingNotes.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        children: [
-                                          if (servingPriority)
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                              margin: const EdgeInsets.only(right: 6),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.warning.withValues(alpha: 0.2),
-                                                borderRadius: BorderRadius.circular(4),
-                                              ),
-                                              child: Text(
-                                                '⚠️ Priority${servingPriorityCat.isNotEmpty ? ': $servingPriorityCat' : ''}',
-                                                style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.warning),
-                                              ),
-                                            ),
-                                          if (servingNotes.isNotEmpty)
-                                            Expanded(
-                                              child: Text('Note: $servingNotes',
-                                                  maxLines: 1,
-                                                  overflow: TextOverflow.ellipsis,
-                                                  style: const TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: AppColors.textSecondary)),
-                                            ),
-                                        ],
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 12),
-                          if (doctorId == null)
-                            const Text('Doctor id missing from server response.',
-                                style: TextStyle(fontSize: 12, color: AppColors.error))
-                          else
-                            Row(
-                              children: [
-                                if (isServing) ...[
-                                  Expanded(
-                                    child: Obx(() => ElevatedButton.icon(
-                                          onPressed: _busy.contains(doctorId) ? null : () => _completeCurrent(doctorId),
-                                          icon: _busy.contains(doctorId)
-                                              ? const SizedBox(
-                                                  width: 14,
-                                                  height: 14,
-                                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                                )
-                                              : const Icon(Icons.check_circle_outline_rounded, size: 18),
-                                          label: const Text('Complete'),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: AppColors.success,
-                                            foregroundColor: Colors.white,
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                          ),
-                                        )),
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                Expanded(
-                                  child: Obx(() => ElevatedButton.icon(
-                                        onPressed: (_busy.contains(doctorId) || waitingCount == 0)
-                                            ? null
-                                            : () => _callNext(doctorId, doctorContext: queue),
-                                        icon: _busy.contains(doctorId)
-                                            ? const SizedBox(
-                                                width: 14,
-                                                height: 14,
-                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                                              )
-                                            : const Icon(Icons.skip_next_rounded, size: 18),
-                                        label: Text(isServing ? 'Next (#$waitingCount)' : 'Call next'),
-                                        style: ElevatedButton.styleFrom(
-                                          backgroundColor: AppColors.primary,
-                                          foregroundColor: Colors.white,
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                        ),
-                                      )),
-                                ),
-                                const SizedBox(width: 8),
-                                OutlinedButton(
-                                  onPressed: () => _openQueue(doctorId, doctor),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primary,
-                                    side: const BorderSide(color: AppColors.primary),
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                  ),
-                                  child: const Icon(Icons.list_alt_rounded, size: 18),
-                                ),
-                              ],
-                            ),
-                        ],
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Theme(
+                    data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      leading: const Icon(Icons.medical_services_outlined, color: AppColors.tealPrimary),
+                      title: Text(
+                        'Doctors & Rooms Directory (${vm.todayQueues.length} Doctors)',
+                        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: AppColors.textPrimary),
                       ),
+                      subtitle: const Text(
+                        'View room numbers & OPD timings for all hospital doctors',
+                        style: TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                      ),
+                      children: [
+                        const Divider(height: 1),
+                        ...vm.todayQueues.map((queue) {
+                          final doctorId = _id(queue['id'] ?? queue['doctor_id']);
+                          final doctor = _value(queue, ['name', 'doctor_name'], fallback: 'Doctor');
+                          final room = _value(queue, ['room']);
+                          final dept = _value(queue, ['department_name'], fallback: '');
+                          final timing = _value(queue, ['availability_hours'], fallback: '09:00 - 17:00');
+                          final waiting = _value(queue, ['waiting'], fallback: '0');
+
+                          return ListTile(
+                            dense: true,
+                            leading: CircleAvatar(
+                              radius: 16,
+                              backgroundColor: AppColors.tealLight,
+                              child: Text(
+                                doctor.isNotEmpty ? doctor.substring(0, 1) : 'D',
+                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.tealPrimary),
+                              ),
+                            ),
+                            title: Text(doctor, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                            subtitle: Text(
+                              '${dept.isNotEmpty ? '$dept · ' : ''}Room $room · 🕒 $timing',
+                              style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                            ),
+                            trailing: doctorId != null
+                                ? OutlinedButton(
+                                    onPressed: () => _openQueue(doctorId, doctor),
+                                    style: OutlinedButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      visualDensity: VisualDensity.compact,
+                                    ),
+                                    child: Text('Queue ($waiting)', style: const TextStyle(fontSize: 11)),
+                                  )
+                                : null,
+                          );
+                        }),
+                        const SizedBox(height: 8),
+                      ],
                     ),
-                  );
-                }),
+                  ),
+                ),
               ],
             ],
           );
@@ -826,25 +661,6 @@ class _QueueControlViewState extends State<QueueControlView> {
           BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: 'Queue'),
           BottomNavigationBarItem(icon: Icon(Icons.medical_services_outlined), label: 'Doctors'),
           BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
-        ],
-      ),
-    );
-  }
-
-  Widget _summaryCard(String title, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.tealPrimary, size: 28),
-          const SizedBox(width: 12),
-          Expanded(child: Text(title, style: const TextStyle(color: AppColors.textSecondary))),
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
         ],
       ),
     );
