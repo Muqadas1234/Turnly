@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
-import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/app_assets.dart';
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/patient_viewmodel.dart';
 import 'hospital_detail_view.dart';
@@ -71,16 +72,21 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                         ),
                       ],
                     ),
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.border),
+                    IconButton(
+                      tooltip: 'Alerts',
+                      onPressed: () => Get.toNamed(AppRoutes.alerts),
+                      style: IconButton.styleFrom(
+                        backgroundColor: AppColors.surface,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: const BorderSide(color: AppColors.border),
+                        ),
+                        fixedSize: const Size(44, 44),
                       ),
-                      child: const Center(
-                        child: Icon(Icons.notifications_none_outlined, size: 20, color: AppColors.textPrimary),
+                      icon: const Icon(
+                        Icons.notifications_none_outlined,
+                        size: 20,
+                        color: AppColors.textPrimary,
                       ),
                     ),
                   ],
@@ -113,13 +119,13 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                             ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.close, size: 16, color: AppColors.textHint),
-                                    onPressed: () {
-                                      _searchController.clear();
-                                      _patientVm.search('');
-                                      setState(() {});
-                                    },
-                                  )
+                              icon: const Icon(Icons.close, size: 16, color: AppColors.textHint),
+                              onPressed: () {
+                                _searchController.clear();
+                                _patientVm.search('');
+                                setState(() {});
+                              },
+                            )
                                 : null,
                             border: InputBorder.none,
                             contentPadding: const EdgeInsets.symmetric(vertical: 14),
@@ -128,15 +134,20 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Container(
+                    SizedBox(
                       width: 48,
                       height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.adminPrimary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Center(
-                        child: Icon(Icons.tune, color: AppColors.surface, size: 20),
+                      child: IconButton(
+                        tooltip: 'Filter by city',
+                        onPressed: () => {},
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.adminPrimary,
+                          foregroundColor: AppColors.surface,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.tune, size: 20),
                       ),
                     ),
                   ],
@@ -208,7 +219,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => _patientVm.refreshCatalog(),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         foregroundColor: AppColors.adminPrimary,
@@ -297,7 +308,7 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
     final waitMin = int.tryParse(token['estimated_wait_minutes']?.toString() ?? '20') ?? 20;
 
     return InkWell(
-      onTap: () => Get.to(() => const MyTokenView()),
+      onTap: () => Get.to(() => MyTokenView(token: token)),
       borderRadius: BorderRadius.circular(16),
       child: Container(
         width: double.infinity,

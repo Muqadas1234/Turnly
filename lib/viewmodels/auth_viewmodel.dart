@@ -1,8 +1,10 @@
-import 'package:firebase_messaging/firebase_messaging.dart';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../services/api_service.dart';
+import '../services/notification_service.dart';
 import '../utils/routes.dart';
 import 'manager_viewmodel.dart';
 
@@ -18,31 +20,82 @@ class AuthViewModel extends GetxController {
     }
   }
 
-  // helper to get fcm token safely
-  Future<String?> _getFcmToken() async {
+  // helper to get fcm token safely (returns null on unsupported platforms)
+  Future<String?> _getFcmToken() => NotificationService.fetchToken();
+
+  /// Ask permission, register this device with the backend and start listening.
+  /// Called after every successful login / OTP verification / session restore, for ALL roles.
+  Future<void> startPush() async {
+    final svc = Get.isRegistered<NotificationService>()
+        ? Get.find<NotificationService>()
+        : Get.put(NotificationService(), permanent: true);
+    await svc.start(onTokenReady: registerFcmToken);
+  }
+
+  Future<void> registerFcmToken(String fcmToken) async {
     try {
-      return await FirebaseMessaging.instance.getToken();
-    } catch (_) {
-      return null;
+      final jwt = await ApiService.getToken();
+      if (jwt == null || jwt.isEmpty) {
+        debugPrint('FCM registration skipped: user is not logged in');
+        return;
+      }
+      final response = await ApiService.updateFcmToken(fcmToken: fcmToken);
+      if (response['success'] == true) {
+        debugPrint('FCM token registered successfully');
+      } else {
+        debugPrint('FCM registration failed: ${response['message']}');
+      }
+    } catch (e) {
+      debugPrint('FCM registration error: $e');
     }
   }
 
-  // Persist session and route user to their respective dashboard
-  Future<void> _handleAuthSuccess(Map<String, dynamic> response) async {
-    final token = response['token'];
-    final user = response['user'];
+  String _normaliseRole(dynamic role) {
+    final value = role?.toString().trim().toLowerCase() ?? '';
+    if (value == 'hospital_manager' || value == 'hospital manager') return 'manager';
+    if (value == 'admin' || value == 'administrator') return 'admin';
+    return value; // 'patient', 'manager' or unknown
+  }
 
-    if (token != null) {
-      await ApiService.saveToken(token.toString());
+  /// Single place that persists a successful auth response and routes the user.
+  ///  * [enforceRole] – login only: the account must match the role picked on the role screen.
+  ///  * [fromOtp]     – OTP verification: new patients see the success screen first.
+  Future<void> _completeAuth(
+    Map<String, dynamic> response, {
+    bool enforceRole = false,
+    bool fromOtp = false,
+  }) async {
+    final user = response['user'];
+    final token = response['token'];
+    if (user is! Map || token == null) {
+      throw const FormatException('The server returned an incomplete response.');
     }
-    if (user is Map) {
-      final userMap = Map<String, dynamic>.from(user);
-      await ApiService.saveUserData(userMap);
-      _rememberUser(userMap);
-      _navigateToHome(userMap['role']);
+    final actualRole = _normaliseRole(user['role']);
+
+    // Admins have no role card on the role screen, so they are never role-checked.
+    if (enforceRole && actualRole != 'admin') {
+      final requestedRole = _normaliseRole(selectedRole.value);
+      if (requestedRole.isNotEmpty && requestedRole != actualRole) {
+        Get.snackbar(
+          'Wrong account type',
+          'This account is registered as ${actualRole.isEmpty ? 'an unknown role' : actualRole}. Select the matching role to continue.',
+          backgroundColor: Colors.orange.shade50,
+          colorText: Colors.orange.shade900,
+        );
+        return;
+      }
+    }
+
+    await ApiService.saveToken(token.toString());
+    await ApiService.saveUserData(Map<String, dynamic>.from(user));
+    _rememberUser(user);
+
+    if (fromOtp && actualRole == 'patient') {
+      Get.offAllNamed(AppRoutes.otpSuccess);
     } else {
-      _navigateToHome(selectedRole.value);
+      await _navigateToHome(actualRole);
     }
+    unawaited(startPush());
   }
 
   Future<void> signup({
@@ -50,6 +103,13 @@ class AuthViewModel extends GetxController {
     required String email,
     required String password,
   }) async {
+    if (_normaliseRole(selectedRole.value) == 'admin') {
+      Get.snackbar(
+        'Admin account',
+        'Admin accounts are created by the platform owner. Please log in with your assigned credentials.',
+      );
+      return;
+    }
     isLoading.value = true;
     try {
       final fcmToken = await _getFcmToken();
@@ -90,13 +150,12 @@ class AuthViewModel extends GetxController {
   }) async {
     isLoading.value = true;
     try {
-      final response = await ApiService.verifyOtp(
-        email: email,
-        otpCode: otpCode,
-      );
+      final response = await ApiService.verifyOtp(email: email, otpCode: otpCode);
 
       if (response['success'] == true) {
-        await _handleAuthSuccess(response);
+        // Manager -> hospital-status routing (registration form for a new manager),
+        // Patient -> success screen, Admin -> admin panel.
+        await _completeAuth(response, fromOtp: true);
       } else {
         Get.snackbar(
           'Error',
@@ -105,7 +164,8 @@ class AuthViewModel extends GetxController {
           colorText: Colors.red.shade800,
         );
       }
-    } catch (_) {
+    } catch (e) {
+      debugPrint('OTP verification error: $e');
       Get.snackbar(
         'Error',
         'Verification failed. Try again',
@@ -160,7 +220,7 @@ class AuthViewModel extends GetxController {
       );
 
       if (response['success'] == true) {
-        await _handleAuthSuccess(response);
+        await _completeAuth(response, enforceRole: true);
       } else if (response['requiresVerification'] == true) {
         Get.snackbar(
           'Verification Required',
@@ -201,7 +261,8 @@ class AuthViewModel extends GetxController {
       if (response['success'] == true) {
         await ApiService.saveUserData(response['user']);
         _rememberUser(response['user']);
-        _navigateToHome(response['user']['role']);
+        await _navigateToHome(response['user']['role']);
+        unawaited(startPush());
       } else {
         await ApiService.clearAll();
         Get.offAllNamed(AppRoutes.roleSelection);
@@ -231,27 +292,49 @@ class AuthViewModel extends GetxController {
   }
 
   Future<void> logout() async {
+    if (Get.isRegistered<ManagerViewModel>()) {
+      Get.find<ManagerViewModel>().resetSession();
+    }
+    // Unregister this device BEFORE the JWT is cleared (the call needs it).
+    if (Get.isRegistered<NotificationService>()) {
+      try {
+        await Get.find<NotificationService>()
+            .stopAndUnregister()
+            .timeout(const Duration(seconds: 4));
+      } catch (e) {
+        debugPrint('Push cleanup skipped on logout: $e');
+      }
+    }
     await ApiService.clearAll();
     currentUser.value = null;
     selectedRole.value = '';
     Get.offAllNamed(AppRoutes.roleSelection);
   }
 
-  void _navigateToHome(dynamic role) {
-    final roleStr = role?.toString().toLowerCase().trim();
-    if (roleStr == 'manager') {
+  Future<void> _navigateToHome(dynamic role) async {
+    final userRole = _normaliseRole(role);
+    if (userRole == 'admin') {
+      Get.offAllNamed(AppRoutes.adminPanel);
+    } else if (userRole == 'manager') {
       final managerVm = Get.isRegistered<ManagerViewModel>()
           ? Get.find<ManagerViewModel>()
-          : Get.put(ManagerViewModel());
-      managerVm.loadMyHospital(routeByStatus: true);
-      return;
+          : Get.put(ManagerViewModel(), permanent: true);
+      managerVm.prefillManagerFromAuth();
+      // Fresh hospital status decides the exact screen (form / pending / dashboard / ...)
+      await managerVm.loadMyHospital(routeByStatus: true);
+    } else if (userRole == 'patient') {
+      Get.offAllNamed(AppRoutes.home);
+    } else {
+      Get.snackbar(
+        'Account role error',
+        'This account has an unsupported role. Please contact support.',
+        backgroundColor: Colors.red.shade50,
+        colorText: Colors.red.shade800,
+      );
+      await ApiService.clearAll();
+      currentUser.value = null;
+      Get.offAllNamed(AppRoutes.roleSelection);
     }
-
-    final route = switch (roleStr) {
-      'admin' => AppRoutes.adminPanel,
-      _ => AppRoutes.home,
-    };
-    Get.offAllNamed(route);
   }
 
   Future<void> forgotPassword(String email) async {

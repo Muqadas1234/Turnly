@@ -1,299 +1,159 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+
 import '../../utils/app_colors.dart';
 import '../../utils/routes.dart';
-import '../../widgets/custom_button.dart';
-import 'my_token_view.dart';
+import '../../viewmodels/patient_viewmodel.dart';
 
-class TokenConfirmationView extends StatelessWidget {
+class TokenConfirmationView extends StatefulWidget {
   const TokenConfirmationView({super.key});
+
+  @override
+  State<TokenConfirmationView> createState() => _TokenConfirmationViewState();
+}
+
+class _TokenConfirmationViewState extends State<TokenConfirmationView> {
+  late final PatientViewModel vm;
+
+  @override
+  void initState() {
+    super.initState();
+    vm = Get.find<PatientViewModel>();
+    vm.fetchActiveToken();
+  }
+
+  String _firstValue(Map<String, dynamic> token, List<String> keys, {String fallback = '—'}) {
+    for (final key in keys) {
+      final value = token[key];
+      if (value != null && value.toString().trim().isNotEmpty) return value.toString();
+    }
+    return fallback;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 500),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: const Text('Booking confirmed'),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+      ),
+      body: Obx(() {
+        final token = vm.activeToken.value;
+        if (vm.isLoadingTokens.value && token == null) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (token == null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const SizedBox(height: 10),
-
-                  // 1. Big Green Tick Circle (Built-in Icons.check)
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: const BoxDecoration(
-                      color: AppColors.success,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check,
-                      size: 42,
-                      color: AppColors.surface,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // 2. Title & Subtitle
+                  const Icon(Icons.info_outline, size: 48, color: AppColors.textSecondary),
+                  const SizedBox(height: 12),
                   const Text(
-                    'Token booked!',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Your digital token is confirmed. No need to wait\nat the hospital.',
+                    'Your booking request was sent, but the active token details could not be loaded.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      height: 1.4,
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // 3. Static Token Card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: AppColors.card,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: AppColors.border),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        // Doctor Details Row
-                        Row(
-                          children: [
-                            // Doctor Initials Avatar
-                            Container(
-                              width: 46,
-                              height: 46,
-                              decoration: const BoxDecoration(
-                                color: AppColors.adminPrimaryLight,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text(
-                                'AR',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AppColors.adminPrimaryDark,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 14),
-                            const Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Dr. Ahmed Raza',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  SizedBox(height: 3),
-                                  Text(
-                                    'Cardiology · City General Hospital',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Built-in Divider
-                        const Divider(color: AppColors.border, thickness: 1),
-                        const SizedBox(height: 16),
-
-                        // Token Number & Schedule Details Row
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Left: Token Number
-                            const Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'TOKEN',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 0.8,
-                                      color: AppColors.textHint,
-                                    ),
-                                  ),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    '#12',
-                                    style: TextStyle(
-                                      fontSize: 38,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.adminPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-
-                            // Right: Date, Wait Time, Room
-                            Expanded(
-                              flex: 6,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _buildInfoRow(
-                                    icon: Icons.calendar_today_outlined,
-                                    text: 'Thu, 12 Nov 2026',
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildInfoRow(
-                                    icon: Icons.access_time_outlined,
-                                    text: 'Est. wait ~25 min',
-                                  ),
-                                  const SizedBox(height: 8),
-                                  _buildInfoRow(
-                                    icon: Icons.location_on_outlined,
-                                    text: 'Room 4 · Floor 2',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
+                    style: TextStyle(color: AppColors.textSecondary, height: 1.4),
                   ),
                   const SizedBox(height: 16),
-
-                  // 4. Notification Reminder Banner
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: AppColors.adminPrimaryLight.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(
-                        color: AppColors.adminPrimary.withValues(alpha: 0.2),
-                      ),
-                    ),
-                    child: const Row(
-                      children: [
-                        Icon(
-                          Icons.notifications_none_outlined,
-                          size: 20,
-                          color: AppColors.adminPrimaryDark,
-                        ),
-                        SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            "We'll notify you when only 2 patients are ahead.",
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.adminPrimaryDark,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-
-                  // 5. Track My Token Button
-                  CustomButton(
-                    label: 'Track my token',
-                    height: 48,
-                    backgroundColor: AppColors.adminPrimary,
-                    textColor: AppColors.surface,
-                    onPressed: () {
-                      Get.to(() => const MyTokenView());
-                    },
-                  ),
-                  const SizedBox(height: 12),
-
-                  // 6. Back to Home Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Get.offAllNamed(AppRoutes.home);
-                      },
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: AppColors.border),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        backgroundColor: AppColors.surface,
-                      ),
-                      child: const Text(
-                        'Back to home',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
+                  OutlinedButton(onPressed: vm.fetchActiveToken, child: const Text('Try again')),
                 ],
               ),
             ),
+          );
+        }
+
+        final tokenNumber = _firstValue(token, ['token_number', 'tokenNumber', 'number']);
+        final doctor = _firstValue(token, ['doctor_name', 'doctorName'], fallback: 'Assigned doctor');
+        final hospital = _firstValue(token, ['hospital_name', 'hospitalName'], fallback: 'Selected hospital');
+        final date = _firstValue(token, ['booking_date', 'date', 'appointment_date']);
+        final status = _firstValue(token, ['status'], fallback: 'Booked');
+
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 28),
+              Container(
+                width: 88,
+                height: 88,
+                decoration: const BoxDecoration(
+                  color: AppColors.successBg,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check_rounded, color: AppColors.success, size: 48),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'Your token is booked!',
+                style: TextStyle(fontSize: 23, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Keep this token number and check your queue before leaving.',
+                textAlign: TextAlign.center,
+                style: TextStyle(color: AppColors.textSecondary, height: 1.4),
+              ),
+              const SizedBox(height: 24),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(22),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Column(
+                  children: [
+                    const Text('TOKEN NUMBER', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: 1, color: AppColors.textSecondary)),
+                    const SizedBox(height: 8),
+                    Text('#$tokenNumber', style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900, color: AppColors.adminPrimary)),
+                    const Divider(height: 28),
+                    _detailRow('Doctor', doctor),
+                    _detailRow('Hospital', hospital),
+                    _detailRow('Date', date),
+                    _detailRow('Status', status),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Get.toNamed(AppRoutes.myTokens),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.adminPrimary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                  ),
+                  child: const Text('View my tokens'),
+                ),
+              ),
+              TextButton(
+                onPressed: () => Get.offAllNamed(AppRoutes.home),
+                child: const Text('Back to home'),
+              ),
+            ],
           ),
-        ),
-      ),
+        );
+      }),
     );
   }
 
-  // Helper row for schedule details with icon
-  Widget _buildInfoRow({
-    required IconData icon,
-    required String text,
-  }) {
-    return Row(
-      children: [
-        Icon(icon, size: 15, color: AppColors.textSecondary),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(
-            text,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textSecondary,
-            ),
-          ),
+  Widget _detailRow(String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(width: 82, child: Text(label, style: const TextStyle(color: AppColors.textSecondary))),
+            Expanded(child: Text(value, textAlign: TextAlign.end, style: const TextStyle(fontWeight: FontWeight.w600, color: AppColors.textPrimary))),
+          ],
         ),
-      ],
-    );
-  }
+      );
 }

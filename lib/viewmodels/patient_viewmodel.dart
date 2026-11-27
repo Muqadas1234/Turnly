@@ -1,248 +1,304 @@
 import 'package:get/get.dart';
 import '../services/api_service.dart';
 
+/// Patient-side state shared by the home, hospital, doctor, booking and token screens.
 class PatientViewModel extends GetxController {
-  // Master list of all approved hospitals to keep availableCities permanent
-  final List<Map<String, dynamic>> _masterHospitals = [];
+  final isLoadingHospitals = false.obs;
+  final isLoadingDetails = false.obs;
+  final isLoadingTokens = false.obs;
+  final errorMessage = ''.obs;
 
-  // Observables for state
+  // Compatibility alias used by PatientHomeTab.
+  RxBool get isLoading => isLoadingHospitals;
+
   final hospitals = <Map<String, dynamic>>[].obs;
   final availableCities = <String>['All'].obs;
-  final activeToken = Rxn<Map<String, dynamic>>();
-  final isLoading = false.obs;
   final selectedCity = 'All'.obs;
   final currentSearchQuery = ''.obs;
-
-  // Hospital Details state
   final currentHospital = Rxn<Map<String, dynamic>>();
   final departments = <Map<String, dynamic>>[].obs;
   final doctors = <Map<String, dynamic>>[].obs;
   final selectedDepartmentId = RxnInt();
   final selectedDoctor = Rxn<Map<String, dynamic>>();
-  final isLoadingDetails = false.obs;
+  final activeTokens = <Map<String, dynamic>>[].obs;
+  final historyTokens = <Map<String, dynamic>>[].obs;
+  final activeToken = Rxn<Map<String, dynamic>>();
+  final familyMembers = <Map<String, dynamic>>[].obs;
+  // Guards against out-of-order responses (fast typing / rapid chip taps / reopening a hospital).
+  int _hospitalsGen = 0;
+  int _detailsGen = 0;
 
-  // Request counters to discard stale async responses
-  int _requestGen = 0;
-  int _detailsRequestGen = 0;
-  int _tokenRequestGen = 0;
+  List<Map<String, dynamic>> get filteredDoctors {
+    final id = selectedDepartmentId.value;
+    if (id == null) return doctors.toList();
+    return doctors.where((d) => _asInt(d['department_id']) == id).toList();
+  }
+
+  bool _isAvailable(Map<String, dynamic> d) => d['is_available'] != false;
+
+  /// First bookable doctor of a department (null when none is available).
+  Map<String, dynamic>? _firstAvailableDoctor(int? departmentId) {
+    for (final d in doctors) {
+      if (departmentId != null && _asInt(d['department_id']) != departmentId) continue;
+      if (_isAvailable(d)) return d;
+    }
+    return null;
+  }
+
+  int? _asInt(dynamic value) =>
+      value == null ? null : int.tryParse(value.toString());
+
+  List<Map<String, dynamic>> _mapList(dynamic value) {
+    if (value is List) {
+      return value
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    }
+    if (value is Map) {
+      for (final key in const [
+        'data',
+        'items',
+        'results',
+        'hospitals',
+        'tokens',
+        'doctors',
+        'departments',
+        'family_members',
+      ]) {
+        final nested = value[key];
+        if (nested is List) return _mapList(nested);
+        if (nested is Map) {
+          final result = _mapList(nested);
+          if (result.isNotEmpty) return result;
+        }
+      }
+    }
+    return [];
+  }
 
   @override
   void onInit() {
     super.onInit();
-    loadInitialData();
+    _loadCityCatalog();
+    fetchHospitals();
     fetchActiveToken();
   }
 
-  // Load initial unfiltered hospitals and extract permanent available cities
-  Future<void> loadInitialData() async {
-    final currentGen = ++_requestGen;
-    isLoading.value = true;
+  /// City chips come from the UNFILTERED hospital list so they never disappear
+  /// while a search or city filter is active.
+  Future<void> _loadCityCatalog() async {
     try {
-      final response = await ApiService.getPatientHospitals();
-      if (response['success'] == true) {
-        final list = (response['data'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-        _masterHospitals.clear();
-        _masterHospitals.addAll(list);
-
-        final cities = list
-            .map((h) => h['city']?.toString().trim())
-            .where((c) => c != null && c.isNotEmpty)
-            .cast<String>()
-            .toSet()
-            .toList();
-        cities.sort();
-        availableCities.assignAll(['All', ...cities]);
-
-        // Only assign to displayed hospitals if no newer search or filter took ownership
-        if (currentGen == _requestGen && currentSearchQuery.value.isEmpty && selectedCity.value.toLowerCase() == 'all') {
-          hospitals.assignAll(list);
-        }
-      }
+      final response = await ApiService.getHospitals();
+      if (response['success'] != true) return;
+      final list = _mapList(response['hospitals'] ?? response['data']);
+      final cities = list
+          .map((h) => h['city']?.toString().trim() ?? '')
+          .where((c) => c.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
+      availableCities.assignAll(['All', ...cities]);
+      if (!availableCities.contains(selectedCity.value)) selectedCity.value = 'All';
     } catch (_) {
-    } finally {
-      if (currentGen == _requestGen && currentSearchQuery.value.isEmpty && selectedCity.value.toLowerCase() == 'all') {
-        isLoading.value = false;
-      }
+      // chips fall back to whatever the filtered list provides
     }
   }
 
-  // Fetch approved hospitals from database with city & search filtering
-  Future<void> fetchHospitals({String? city, String? search}) async {
-    final currentGen = ++_requestGen;
-    isLoading.value = true;
+  Future<void> fetchHospitals({String? search, String? city}) async {
+    final gen = ++_hospitalsGen;
+    isLoadingHospitals.value = true;
+    errorMessage.value = '';
     try {
-      final queryText = search ?? currentSearchQuery.value;
-      final isSearching = queryText.trim().isNotEmpty;
-
-      // When searching, search across all cities (reset city constraint)
-      final targetCity = isSearching
-          ? null
-          : (city ?? (selectedCity.value.toLowerCase() == 'all' ? null : selectedCity.value));
-
-      final response = await ApiService.getPatientHospitals(
-        city: targetCity,
-        search: isSearching ? queryText : null,
+      final response = await ApiService.getHospitals(
+        search: search ?? (currentSearchQuery.value.isEmpty ? null : currentSearchQuery.value),
+        city: city ?? (selectedCity.value == 'All' ? null : selectedCity.value),
       );
-
-      if (currentGen != _requestGen) return;
-
+      if (gen != _hospitalsGen) return; // a newer request superseded this one
       if (response['success'] == true) {
-        final list = (response['data'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
+        final raw = response['hospitals'] ?? response['data'];
+        final list = _mapList(raw);
         hospitals.assignAll(list);
+        if (availableCities.length <= 1) {
+          final cities = list
+              .map((h) => h['city']?.toString().trim() ?? '')
+              .where((c) => c.isNotEmpty)
+              .toSet()
+              .toList()
+            ..sort();
+          if (cities.isNotEmpty) availableCities.assignAll(['All', ...cities]);
+        }
+        if (!availableCities.contains(selectedCity.value)) {
+          selectedCity.value = 'All';
+        }
       } else {
-        hospitals.clear();
+        errorMessage.value =
+            response['message']?.toString() ?? 'Hospitals could not be loaded';
       }
-    } catch (_) {
-      if (currentGen == _requestGen) {
-        hospitals.clear();
-      }
+    } catch (e) {
+      errorMessage.value = 'Could not connect to Turnly API: $e';
     } finally {
-      if (currentGen == _requestGen) {
-        isLoading.value = false;
-      }
+      if (gen == _hospitalsGen) isLoadingHospitals.value = false;
     }
   }
 
-  // City chip selection handler
-  void setCityFilter(String city) {
+  Future<void> search(String query) async {
+    currentSearchQuery.value = query.trim();
+    // Searching looks across every city, so the city chip goes back to "All".
+    if (currentSearchQuery.value.isNotEmpty) selectedCity.value = 'All';
+    await fetchHospitals(
+      search: currentSearchQuery.value,
+      city: selectedCity.value == 'All' ? null : selectedCity.value,
+    );
+  }
+
+  Future<void> setCityFilter(String city) async {
     selectedCity.value = city;
-    currentSearchQuery.value = '';
-    fetchHospitals(city: city, search: '');
+    await fetchHospitals(city: city == 'All' ? null : city);
   }
 
-  // Real-time search query handler
-  void search(String query) {
-    currentSearchQuery.value = query;
-    if (query.trim().isNotEmpty) {
-      selectedCity.value = 'All'; // Automatically reset filter chip to 'All' when searching
-    }
-    fetchHospitals(search: query);
+  Future<void> refreshCatalog() async {
+    await Future.wait([_loadCityCatalog(), fetchHospitals(), fetchActiveToken()]);
   }
 
-  // Fetch current active token for logged in patient
   Future<void> fetchActiveToken() async {
-    final currentGen = ++_tokenRequestGen;
-    try {
-      final response = await ApiService.getPatientActiveToken();
-      if (currentGen != _tokenRequestGen) return;
-
-      if (response['success'] == true && response['data'] != null) {
-        activeToken.value = Map<String, dynamic>.from(response['data'] as Map);
-      } else {
-        activeToken.value = null;
-      }
-    } catch (_) {
-      if (currentGen == _tokenRequestGen) {
-        activeToken.value = null;
-      }
-    }
+    await fetchTokens(scope: 'active');
   }
 
-  // Fetch hospital specifications, departments, and doctors from database
   Future<void> fetchHospitalDetails(int hospitalId) async {
-    final currentGen = ++_detailsRequestGen;
-
-    // Reset hospital-specific state so previous details are not exposed
+    if (hospitalId <= 0) {
+      errorMessage.value = 'Invalid hospital selected';
+      return;
+    }
+    final gen = ++_detailsGen;
+    isLoadingDetails.value = true;
+    errorMessage.value = '';
+    selectedDoctor.value = null;
     currentHospital.value = null;
     departments.clear();
     doctors.clear();
-    selectedDoctor.value = null;
     selectedDepartmentId.value = null;
-    isLoadingDetails.value = true;
-
     try {
-      final response = await ApiService.getHospitalDetails(hospitalId);
-      if (currentGen != _detailsRequestGen) return;
-
-      if (response['success'] == true && response['data'] != null) {
-        final data = response['data'] as Map<String, dynamic>;
-        currentHospital.value = Map<String, dynamic>.from(data['hospital'] as Map);
-
-        final deptList = (data['departments'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-        departments.assignAll(deptList);
-
-        final docList = (data['doctors'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-        doctors.assignAll(docList);
-
-        // Default to first department if available
-        final firstDeptId = deptList.isNotEmpty ? deptList.first['id'] as int? : null;
-        selectedDepartmentId.value = firstDeptId;
-
-        // Select an eligible (available) doctor belonging to the selected department
-        selectedDoctor.value = docList.firstWhereOrNull(
-          (d) => (firstDeptId == null || d['department_id'] == firstDeptId) && d['is_available'] == true,
-        );
-      } else {
-        currentHospital.value = null;
+      final results = await Future.wait([
+        ApiService.getHospitalDetail(hospitalId),
+        ApiService.getHospitalDepartments(hospitalId),
+        ApiService.getHospitalDoctors(hospitalId),
+      ]);
+      if (gen != _detailsGen) return;
+      final hospitalResponse = results[0];
+      final departmentResponse = results[1];
+      final doctorResponse = results[2];
+      if (hospitalResponse['success'] != true) {
+        throw Exception(hospitalResponse['message'] ?? 'Hospital not found');
       }
-    } catch (_) {
-      if (currentGen == _detailsRequestGen) {
-        currentHospital.value = null;
+      final hospitalData =
+          hospitalResponse['hospital'] ?? hospitalResponse['data'];
+      currentHospital.value = hospitalData is Map
+          ? Map<String, dynamic>.from(hospitalData)
+          : <String, dynamic>{};
+      departments.assignAll(_mapList(
+        departmentResponse['departments'] ?? departmentResponse['data'],
+      ));
+      doctors.assignAll(_mapList(
+        doctorResponse['doctors'] ?? doctorResponse['data'],
+      ));
+      selectedDepartmentId.value =
+          departments.isEmpty ? null : _asInt(departments.first['id'] ?? departments.first['department_id']);
+      selectedDoctor.value = _firstAvailableDoctor(selectedDepartmentId.value);
+    } catch (e) {
+      if (gen == _detailsGen) {
+        errorMessage.value = e.toString().replaceFirst('Exception: ', '');
       }
     } finally {
-      if (currentGen == _detailsRequestGen) {
-        isLoadingDetails.value = false;
-      }
+      if (gen == _detailsGen) isLoadingDetails.value = false;
     }
   }
 
-  // Filter doctors by selected department
-  List<Map<String, dynamic>> get filteredDoctors {
-    if (selectedDepartmentId.value == null) return doctors;
-    return doctors
-        .where((d) => d['department_id'] == selectedDepartmentId.value)
-        .toList();
+  void selectDepartment(dynamic id) {
+    selectedDepartmentId.value = _asInt(id);
+    selectedDoctor.value = _firstAvailableDoctor(selectedDepartmentId.value);
   }
 
-  // Department chip selection handler
-  void selectDepartment(int deptId) {
-    selectedDepartmentId.value = deptId;
-    // Invalidate or update selected doctor if not belonging to chosen department
-    if (selectedDoctor.value != null && selectedDoctor.value?['department_id'] != deptId) {
-      selectedDoctor.value = doctors.firstWhereOrNull(
-        (d) => d['department_id'] == deptId && d['is_available'] == true,
-      );
-    }
+  void selectDoctor(Map<String, dynamic> doctor) {
+    selectedDoctor.value = doctor;
   }
 
-  // Refresh both master city catalog and active filtered hospitals
-  Future<void> refreshCatalog() async {
+  Future<void> fetchTokens({String scope = 'active'}) async {
+    isLoadingTokens.value = true;
     try {
-      final response = await ApiService.getPatientHospitals();
+      final response = await ApiService.getMyTokens(scope: scope);
       if (response['success'] == true) {
-        final list = (response['data'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-        _masterHospitals.clear();
-        _masterHospitals.addAll(list);
-
-        final cities = list
-            .map((h) => h['city']?.toString().trim())
-            .where((c) => c != null && c.isNotEmpty)
-            .cast<String>()
-            .toSet()
-            .toList();
-        cities.sort();
-        availableCities.assignAll(['All', ...cities]);
+        final list = _mapList(response['tokens'] ?? response['data']);
+        if (scope == 'history') {
+          historyTokens.assignAll(list);
+        } else {
+          activeTokens.assignAll(list);
+          activeToken.value = list.isEmpty ? null : list.first;
+        }
+      } else {
+        errorMessage.value =
+            response['message']?.toString() ?? 'Tokens could not be loaded';
       }
-    } catch (_) {}
-
-    await Future.wait([
-      fetchHospitals(),
-      fetchActiveToken(),
-    ]);
+    } catch (e) {
+      errorMessage.value = 'Could not load tokens: $e';
+    } finally {
+      isLoadingTokens.value = false;
+    }
   }
 
-  // Select doctor for booking flow
-  void selectDoctor(Map<String, dynamic> doc) {
-    selectedDoctor.value = doc;
+  Future<Map<String, dynamic>> book({
+    required int doctorId,
+    DateTime? date,
+    int? familyMemberId,
+  }) async {
+    final dateText = date == null
+        ? null
+        : '${date.year.toString().padLeft(4, '0')}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    final response = await ApiService.bookToken(
+      doctorId: doctorId,
+      date: dateText,
+      familyMemberId: familyMemberId,
+    );
+    if (response['success'] == true) await fetchTokens();
+    return response;
+  }
+
+  Future<Map<String, dynamic>> fetchTokenDetail(int tokenId) =>
+      ApiService.getTokenDetail(tokenId);
+
+  Future<Map<String, dynamic>> cancelToken(int tokenId) async {
+    final response = await ApiService.cancelMyToken(tokenId);
+    if (response['success'] == true) await fetchTokens();
+    return response;
+  }
+
+  Future<void> fetchFamilyMembers() async {
+    try {
+      final response = await ApiService.getFamilyMembers();
+      if (response['success'] == true) {
+        familyMembers.assignAll(_mapList(
+          response['family_members'] ?? response['data'],
+        ));
+      } else {
+        errorMessage.value =
+            response['message']?.toString() ?? 'Family members could not be loaded';
+      }
+    } catch (e) {
+      errorMessage.value = 'Could not load family members: $e';
+    }
+  }
+
+  Future<Map<String, dynamic>> createFamilyMember({
+    required String name,
+    required String relation,
+    required int age,
+  }) async {
+    final response = await ApiService.addFamilyMember(
+      name: name,
+      relation: relation,
+      age: age,
+    );
+    if (response['success'] == true) await fetchFamilyMembers();
+    return response;
   }
 }

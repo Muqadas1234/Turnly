@@ -419,7 +419,7 @@ class _EditProfileBottomSheetState extends State<_EditProfileBottomSheet> {
                 hintStyle: const TextStyle(color: AppColors.textHint, fontSize: 14),
                 prefixIcon: const Icon(Icons.person_outline_rounded, color: AppColors.textSecondary, size: 20),
                 filled: true,
-                fillColor: const Color(0xFFF8FAFC),
+                fillColor: AppColors.background,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),

@@ -17,7 +17,6 @@ class BookingView extends StatefulWidget {
 class _BookingViewState extends State<BookingView> {
   final AuthViewModel _authVm = Get.find<AuthViewModel>();
   final PatientViewModel _patientVm = Get.find<PatientViewModel>();
-  final TextEditingController _patientNameController = TextEditingController();
 
   Map<String, dynamic> _doctor = {};
   Map<String, dynamic> _hospital = {};
@@ -26,6 +25,7 @@ class _BookingViewState extends State<BookingView> {
   DateTime _selectedDate = DateTime.now();
 
   bool _isForMyself = true;
+  int? _selectedFamilyMemberId;
   bool _isSubmitting = false;
 
   @override
@@ -47,27 +47,30 @@ class _BookingViewState extends State<BookingView> {
         0;
 
     _selectedDate = DateTime.now();
+    _patientVm.fetchFamilyMembers();
   }
 
   @override
   void dispose() {
-    _patientNameController.dispose();
     super.dispose();
   }
 
   Future<void> _confirmBooking() async {
-    final patientName = _isForMyself
-        ? (_authVm.currentUser.value?['name'] ?? 'Patient')
-        : _patientNameController.text.trim();
-
-    if (!_isForMyself && patientName.isEmpty) {
+    if (!_isForMyself && _selectedFamilyMemberId == null) {
       Get.snackbar(
-        'Required',
-        'Please enter patient name',
+        'Select family member',
+        'Choose a saved family member or add one from the Family Members screen.',
         backgroundColor: AppColors.error,
         colorText: Colors.white,
         snackPosition: SnackPosition.BOTTOM,
         margin: const EdgeInsets.all(16),
+        mainButton: TextButton(
+          onPressed: () {
+            Get.back();
+            Get.toNamed('/family-members');
+          },
+          child: const Text('Add member', style: TextStyle(color: Colors.white)),
+        ),
       );
       return;
     }
@@ -76,7 +79,6 @@ class _BookingViewState extends State<BookingView> {
     final hospId = _hospitalId > 0
         ? _hospitalId
         : (int.tryParse(_doctor['hospital_id']?.toString() ?? '') ?? 0);
-    final deptId = int.tryParse(_doctor['department_id']?.toString() ?? '');
 
     if (docId == 0 || hospId == 0) {
       Get.snackbar(
@@ -91,17 +93,14 @@ class _BookingViewState extends State<BookingView> {
     }
 
     final bookingDate = _selectedDate;
-    final formattedDate = DateFormat('yyyy-MM-dd').format(bookingDate);
 
     setState(() => _isSubmitting = true);
 
     try {
       final response = await ApiService.bookToken(
         doctorId: docId,
-        hospitalId: hospId,
-        departmentId: deptId,
-        patientName: patientName,
-        bookingDate: formattedDate,
+        date: DateFormat('yyyy-MM-dd').format(bookingDate),
+        familyMemberId: _isForMyself ? null : _selectedFamilyMemberId,
       );
 
       if (response['success'] == true) {
@@ -352,15 +351,47 @@ class _BookingViewState extends State<BookingView> {
             ),
             if (!_isForMyself) ...[
               const SizedBox(height: 14),
-              TextField(
-                controller: _patientNameController,
-                decoration: InputDecoration(
-                  labelText: 'Patient Full Name',
-                  filled: true,
-                  fillColor: AppColors.surface,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+              Obx(() {
+                if (_patientVm.familyMembers.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Expanded(
+                          child: Text('No saved family members yet. Add a member before booking for them.'),
+                        ),
+                        TextButton(
+                          onPressed: () => Get.toNamed('/family-members'),
+                          child: const Text('Add'),
+                        ),
+                      ],
+                    ),
+                  );
+                }
+                return DropdownButtonFormField<int>(
+                  value: _selectedFamilyMemberId,
+                  decoration: InputDecoration(
+                    labelText: 'Select family member',
+                    filled: true,
+                    fillColor: AppColors.surface,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  items: _patientVm.familyMembers.map((member) {
+                    final id = int.tryParse(member['id']?.toString() ?? '');
+                    if (id == null) return null;
+                    return DropdownMenuItem<int>(
+                      value: id,
+                      child: Text('${member['name'] ?? 'Family member'} (${member['relation'] ?? 'Other'})'),
+                    );
+                  }).whereType<DropdownMenuItem<int>>().toList(),
+                  onChanged: (value) => setState(() => _selectedFamilyMemberId = value),
+                );
+              }),
             ],
           ],
         ),

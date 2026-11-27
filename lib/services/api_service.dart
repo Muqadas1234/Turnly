@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:turnly/services/api_endpoints.dart';
@@ -9,6 +10,49 @@ class ApiService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('jwt_token', token);
   }
+
+
+
+// Register or update the authenticated user's FCM device token
+  static Future<Map<String, dynamic>> updateFcmToken({
+    required String fcmToken,
+  }) async {
+    final response = await http.put(
+      Uri.parse(ApiEndpoints.fcmTokenUrl),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        'fcm_token': fcmToken,
+        'platform': _platformName(),
+      }),
+    );
+
+    return _decode(response);
+  }
+
+  // Stop push notifications to THIS device (call before the JWT is cleared on logout)
+  static Future<Map<String, dynamic>> removeFcmToken({
+    required String fcmToken,
+  }) async {
+    final response = await http.delete(
+      Uri.parse(ApiEndpoints.fcmTokenUrl),
+      headers: await _authHeaders(),
+      body: jsonEncode({'fcm_token': fcmToken}),
+    );
+    return _decode(response);
+  }
+
+  static String _platformName() {
+    if (kIsWeb) return 'web';
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.android:
+        return 'android';
+      case TargetPlatform.iOS:
+        return 'ios';
+      default:
+        return 'other';
+    }
+  }
+
 
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
@@ -127,7 +171,20 @@ class ApiService {
     return _decode(response);
   }
 
-
+  // update profile details
+  static Future<Map<String, dynamic>> updateProfile({
+    String? name,
+  }) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse(ApiEndpoints.profileUrl),
+      headers: headers,
+      body: jsonEncode({
+        if (name != null) 'name': name,
+      }),
+    );
+    return _decode(response);
+  }
 
   // --- Hospital Registration & Status ---
 
@@ -257,28 +314,6 @@ class ApiService {
     return _decode(response);
   }
 
-  // Permanently delete a hospital
-  static Future<Map<String, dynamic>> deleteHospital(int hospitalId) async {
-    final headers = await _authHeaders();
-    final response = await http.delete(
-      Uri.parse(ApiEndpoints.adminDeleteHospital(hospitalId)),
-      headers: headers,
-    );
-    return _decode(response);
-  }
-
-  // Fetch registered hospital managers with optional hospital status & search
-  static Future<Map<String, dynamic>> getAdminManagers({String? status, String? search}) async {
-    final headers = await _authHeaders();
-    final queryParams = <String, String>{};
-    if (status != null && status.isNotEmpty && status != 'all') queryParams['status'] = status;
-    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
-
-    final uri = Uri.parse(ApiEndpoints.adminManagers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
-    final response = await http.get(uri, headers: headers);
-    return _decode(response);
-  }
-
   // Fetch overall platform statistics
   static Future<Map<String, dynamic>> getPlatformStats() async {
     final headers = await _authHeaders();
@@ -288,6 +323,71 @@ class ApiService {
     );
     return _decode(response);
   }
+
+  // --- Patient browsing (public approved hospitals) ---
+  static Future<Map<String, dynamic>> getHospitals({String? search, String? city, int page = 1}) async {
+    final uri = Uri.parse(ApiEndpoints.hospitalsUrl).replace(queryParameters: {
+      if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+      'page': '$page',
+    });
+    return _decode(await http.get(uri));
+  }
+
+  static Future<Map<String, dynamic>> getHospitalDetail(int hospitalId) async =>
+      _decode(await http.get(Uri.parse(ApiEndpoints.hospitalDetail(hospitalId))));
+
+  static Future<Map<String, dynamic>> getHospitalDepartments(int hospitalId) async =>
+      _decode(await http.get(Uri.parse(ApiEndpoints.hospitalDepartments(hospitalId))));
+
+  static Future<Map<String, dynamic>> getHospitalDoctors(int hospitalId, {int? departmentId, String? search, String? date}) async {
+    final uri = Uri.parse(ApiEndpoints.hospitalDoctors(hospitalId)).replace(queryParameters: {
+      if (departmentId != null) 'department_id': '$departmentId',
+      if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+      if (date != null && date.isNotEmpty) 'date': date,
+    });
+    return _decode(await http.get(uri));
+  }
+
+  // --- Patient tokens ---
+  static Future<Map<String, dynamic>> bookToken({
+    required int doctorId,
+    String? date,
+    int? familyMemberId,
+    String? priorityCategory,
+    String? notes,
+  }) async {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.tokensUrl),
+      headers: await _authHeaders(),
+      body: jsonEncode({
+        'doctor_id': doctorId,
+        if (date != null && date.isNotEmpty) 'date': date,
+        if (familyMemberId != null) 'family_member_id': familyMemberId,
+        if (priorityCategory != null && priorityCategory.isNotEmpty) 'priority_category': priorityCategory,
+        if (notes != null && notes.trim().isNotEmpty) 'notes': notes.trim(),
+      }),
+    );
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> getMyTokens({String scope = 'active', int limit = 50}) async {
+    final uri = Uri.parse(ApiEndpoints.myTokensUrl).replace(queryParameters: {'scope': scope, 'limit': '$limit'});
+    return _decode(await http.get(uri, headers: await _authHeaders()));
+  }
+
+  static Future<Map<String, dynamic>> getTokenDetail(int tokenId) async =>
+      _decode(await http.get(Uri.parse(ApiEndpoints.tokenDetail(tokenId)), headers: await _authHeaders()));
+
+  static Future<Map<String, dynamic>> cancelMyToken(int tokenId) async =>
+      _decode(await http.post(Uri.parse(ApiEndpoints.cancelToken(tokenId)), headers: await _authHeaders()));
+
+  static Future<Map<String, dynamic>> getFamilyMembers() async =>
+      _decode(await http.get(Uri.parse(ApiEndpoints.familyUrl), headers: await _authHeaders()));
+
+  static Future<Map<String, dynamic>> addFamilyMember({required String name, required String relation, required int age}) async =>
+      _decode(await http.post(Uri.parse(ApiEndpoints.familyUrl), headers: await _authHeaders(),
+          body: jsonEncode({'name': name, 'relation': relation, 'age': age})));
 
   // Safe JSON response parser
   static Map<String, dynamic> _decode(http.Response response) {
@@ -303,7 +403,74 @@ class ApiService {
     }
   }
 
-  // 1. Fetch approved hospitals for patient home screen
+  // Update hospital details / OPD timings (PATCH /api/hospitals/my-hospital)
+  static Future<Map<String, dynamic>> updateMyHospital(
+      Map<String, dynamic> payload,
+      ) async {
+    final headers = await _authHeaders();
+    final response = await http.patch(
+      Uri.parse(ApiEndpoints.myHospitalUrl),
+      headers: headers,
+      body: jsonEncode(payload),
+    );
+    return _decode(response);
+  }
+
+  // Fetch manager dashboard live stats & today's queues (GET /api/queue/stats)
+  static Future<Map<String, dynamic>> getManagerDashboard({String? date}) async {
+    final headers = await _authHeaders();
+    final baseUri = Uri.parse(ApiEndpoints.queueStatsUrl);
+    final uri = baseUri.replace(
+      queryParameters: (date != null && date.isNotEmpty) ? {'date': date} : null,
+    );
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+  // --- Notifications (in-app list) ---
+
+  static Future<Map<String, dynamic>> getNotifications({int limit = 50}) async {
+    final uri = Uri.parse(ApiEndpoints.notificationsUrl).replace(queryParameters: {'limit': '$limit'});
+    return _decode(await http.get(uri, headers: await _authHeaders()));
+  }
+
+  static Future<Map<String, dynamic>> markNotificationRead(int id) async =>
+      _decode(await http.put(Uri.parse(ApiEndpoints.notificationRead(id)), headers: await _authHeaders()));
+
+  static Future<Map<String, dynamic>> markAllNotificationsRead() async =>
+      _decode(await http.put(Uri.parse(ApiEndpoints.notificationsReadAllUrl), headers: await _authHeaders()));
+
+  // ── Added from the A branch ──────────────────────────────────────────
+  static Future<Map<String, dynamic>> deleteHospital(int hospitalId) async {
+    final headers = await _authHeaders();
+    final response = await http.delete(
+      Uri.parse(ApiEndpoints.adminDeleteHospital(hospitalId)),
+      headers: headers,
+    );
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> getAdminManagers({String? status, String? search}) async {
+    final headers = await _authHeaders();
+    final queryParams = <String, String>{};
+    if (status != null && status.isNotEmpty && status != 'all') queryParams['status'] = status;
+    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
+
+    final uri = Uri.parse(ApiEndpoints.adminManagers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> getAdminUsers({String? role, String? search}) async {
+    final headers = await _authHeaders();
+    final queryParams = <String, String>{};
+    if (role != null && role.isNotEmpty && role != 'all') queryParams['role'] = role;
+    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
+
+    final uri = Uri.parse(ApiEndpoints.adminUsers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
+    final response = await http.get(uri, headers: headers);
+    return _decode(response);
+  }
+
   static Future<Map<String, dynamic>> getPatientHospitals({
     String? city,
     String? search,
@@ -324,7 +491,6 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // 2. Fetch current active token for logged-in patient
   static Future<Map<String, dynamic>> getPatientActiveToken() async {
     final token = await getToken();
     final response = await http.get(
@@ -337,7 +503,6 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // 3. Fetch single hospital details with departments & doctors
   static Future<Map<String, dynamic>> getHospitalDetails(int hospitalId) async {
     final response = await http.get(
       Uri.parse(ApiEndpoints.patientHospitalDetail(hospitalId)),
@@ -345,8 +510,65 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
-  // Book a new token for a doctor
-  static Future<Map<String, dynamic>> bookToken({
+  static Future<Map<String, dynamic>> getDoctorQueueStatus(int doctorId, {String? date}) async {
+    final queryParams = <String, String>{};
+    if (date != null && date.trim().isNotEmpty) {
+      queryParams['date'] = date.trim();
+    }
+
+    final uri = Uri.parse(ApiEndpoints.doctorQueueStatus(doctorId)).replace(
+      queryParameters: queryParams.isNotEmpty ? queryParams : null,
+    );
+
+    final response = await http.get(uri);
+    return jsonDecode(response.body);
+  }
+
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.forgotPasswordUrl),
+      headers: _jsonHeaders(),
+      body: jsonEncode({'email': email.trim()}),
+    );
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> resetPassword({
+    required String email,
+    required String otpCode,
+    required String newPassword,
+  }) async {
+    final response = await http.post(
+      Uri.parse(ApiEndpoints.resetPasswordUrl),
+      headers: _jsonHeaders(),
+      body: jsonEncode({
+        'email': email.trim(),
+        'otp_code': otpCode.trim(),
+        'new_password': newPassword,
+      }),
+    );
+    return _decode(response);
+  }
+
+  static Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    final headers = await _authHeaders();
+    final response = await http.put(
+      Uri.parse(ApiEndpoints.changePasswordUrl),
+      headers: headers,
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword,
+      }),
+    );
+    return _decode(response);
+  }
+
+  /// Legacy booking route (POST /api/patient/tokens/book). The backend still serves it,
+  /// but the app books through [bookToken] (POST /api/tokens), the consolidated route.
+  static Future<Map<String, dynamic>> bookTokenByHospital({
     required int doctorId,
     required int hospitalId,
     int? departmentId,
@@ -369,80 +591,5 @@ class ApiService {
       }),
     );
     return jsonDecode(response.body);
-  }
-
-  // Fetch preview of doctor's queue status
-  static Future<Map<String, dynamic>> getDoctorQueueStatus(int doctorId, {String? date}) async {
-    final queryParams = <String, String>{};
-    if (date != null && date.trim().isNotEmpty) {
-      queryParams['date'] = date.trim();
-    }
-
-    final uri = Uri.parse(ApiEndpoints.doctorQueueStatus(doctorId)).replace(
-      queryParameters: queryParams.isNotEmpty ? queryParams : null,
-    );
-
-    final response = await http.get(uri);
-    return jsonDecode(response.body);
-  }
-
-  // Request password reset OTP
-  static Future<Map<String, dynamic>> forgotPassword(String email) async {
-    final response = await http.post(
-      Uri.parse(ApiEndpoints.forgotPasswordUrl),
-      headers: _jsonHeaders(),
-      body: jsonEncode({'email': email.trim()}),
-    );
-    return _decode(response);
-  }
-
-  // Reset password using the received OTP code
-  static Future<Map<String, dynamic>> resetPassword({
-    required String email,
-    required String otpCode,
-    required String newPassword,
-  }) async {
-    final response = await http.post(
-      Uri.parse(ApiEndpoints.resetPasswordUrl),
-      headers: _jsonHeaders(),
-      body: jsonEncode({
-        'email': email.trim(),
-        'otp_code': otpCode.trim(),
-        'new_password': newPassword,
-      }),
-    );
-    return _decode(response);
-  }
-
-  // Update profile details
-  static Future<Map<String, dynamic>> updateProfile({
-    String? name,
-  }) async {
-    final headers = await _authHeaders();
-    final response = await http.put(
-      Uri.parse(ApiEndpoints.profileUrl),
-      headers: headers,
-      body: jsonEncode({
-        if (name != null) 'name': name,
-      }),
-    );
-    return _decode(response);
-  }
-
-  // Send password change request to backend
-  static Future<Map<String, dynamic>> changePassword({
-    required String currentPassword,
-    required String newPassword,
-  }) async {
-    final headers = await _authHeaders();
-    final response = await http.put(
-      Uri.parse(ApiEndpoints.changePasswordUrl),
-      headers: headers,
-      body: jsonEncode({
-        'current_password': currentPassword,
-        'new_password': newPassword,
-      }),
-    );
-    return _decode(response);
   }
 }

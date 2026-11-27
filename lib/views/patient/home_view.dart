@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:get/get.dart';
+import '../../services/notification_service.dart';
 import '../../utils/app_assets.dart';
 import '../../utils/app_colors.dart';
 import 'my_tokens_view.dart';
@@ -22,6 +24,33 @@ class _HomeViewState extends State<HomeView> {
     ProfileView(),
   ];
 
+  Worker? _tabWorker;
+
+  @override
+  void initState() {
+    super.initState();
+    if (Get.isRegistered<NotificationService>()) {
+      final svc = Get.find<NotificationService>();
+      // a notification tap may have arrived before this screen existed
+      _applyPendingTab(svc);
+      _tabWorker = ever(svc.pendingTab, (_) => _applyPendingTab(svc));
+    }
+  }
+
+  void _applyPendingTab(NotificationService svc) {
+    final tab = svc.pendingTab.value;
+    if (tab == null) return;
+    svc.pendingTab.value = null;
+    if (mounted && tab >= 0 && tab < _screens.length) {
+      setState(() => _currentIndex = tab);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabWorker?.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -53,7 +82,7 @@ class _HomeViewState extends State<HomeView> {
     );
   }
 
-  Widget _buildNavItem(int index, String assetPath, String label) {
+  Widget _buildNavItem(int index, String iconAsset, String label) {
     final isSelected = _currentIndex == index;
     final color = isSelected ? AppColors.adminPrimary : AppColors.textHint;
 
@@ -66,7 +95,7 @@ class _HomeViewState extends State<HomeView> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SvgPicture.asset(
-              assetPath,
+              iconAsset,
               width: 22,
               height: 22,
               colorFilter: ColorFilter.mode(color, BlendMode.srcIn),

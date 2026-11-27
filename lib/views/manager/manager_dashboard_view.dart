@@ -18,7 +18,8 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
   @override
   void initState() {
     super.initState();
-    vm.loadMyHospital(routeByStatus: true);
+    vm.loadMyHospital(routeByStatus: false);
+    vm.fetchDashboard();
   }
 
   @override
@@ -48,9 +49,10 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
         final status = hospital?.status ?? 'pending';
         final isPending = status == 'pending';
 
-        return Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
+        return SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Container(
@@ -120,6 +122,38 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
                 ),
               ),
               const SizedBox(height: 20),
+              const Text(
+                'Today at a glance',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                mainAxisSpacing: 10,
+                crossAxisSpacing: 10,
+                childAspectRatio: 2.15,
+                children: [
+                  _metricTile('Tokens today', vm.tokensToday.value.toString(), Icons.confirmation_number_outlined),
+                  _metricTile('In queue', vm.inQueueNow.value.toString(), Icons.groups_outlined),
+                  _metricTile('Patients served', vm.patientsServed.value.toString(), Icons.check_circle_outline),
+                  _metricTile('Avg. consult.', '${vm.avgConsultationMins.value} min', Icons.timer_outlined),
+                ],
+              ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: vm.fetchDashboard,
+                  icon: const Icon(Icons.refresh, size: 16),
+                  label: const Text('Refresh stats'),
+                ),
+              ),
+              const SizedBox(height: 8),
               _buildActionTile(
                 icon: Icons.layers_outlined,
                 title: 'Departments',
@@ -141,6 +175,7 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
                 onTap: () => Get.toNamed(AppRoutes.doctorManagement),
               ),
             ],
+            ),
           ),
         );
       }),
@@ -173,6 +208,43 @@ class _ManagerDashboardViewState extends State<ManagerDashboardView> {
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline_rounded),
             label: 'Profile',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricTile(String title, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppColors.tealPrimary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                ),
+                Text(
+                  title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 10.5, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
           ),
         ],
       ),

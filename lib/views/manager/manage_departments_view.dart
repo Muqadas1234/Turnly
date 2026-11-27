@@ -193,7 +193,7 @@ class _ManageDepartmentsViewState extends State<ManageDepartmentsView> {
 
   Widget _buildDepartmentCard(DepartmentModel dept, int index) {
     final badgeColors = [
-      (const Color(0xFFE6F4F1), const Color(0xFF0F8C7C)),
+      (AppColors.primaryExtraLight, AppColors.primary),
       (const Color(0xFFEFF6FF), const Color(0xFF2563EB)),
       (const Color(0xFFF3E8FF), const Color(0xFF7C3AED)),
       (const Color(0xFFFEF3C7), const Color(0xFFD97706)),

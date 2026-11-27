@@ -25,13 +25,17 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
     if (widget.hospitalId != null && widget.hospitalId! > 0) {
       return widget.hospitalId!;
     }
-    if (Get.arguments is Map && Get.arguments['hospitalId'] != null) {
-      return int.tryParse(Get.arguments['hospitalId'].toString()) ?? 1;
+    if (Get.arguments is Map) {
+      final args = Get.arguments as Map;
+      final rawId = args['hospitalId'] ??
+          args['hospital_id'] ??
+          (args['hospital'] is Map ? (args['hospital'] as Map)['id'] : null);
+      return int.tryParse(rawId?.toString() ?? '') ?? 0;
     }
     if (Get.arguments is int) {
       return Get.arguments as int;
     }
-    return 1;
+    return 0;
   }
 
   String get _resolvedHospitalName {
@@ -74,6 +78,32 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
         if (_patientVm.isLoadingDetails.value) {
           return const Center(
             child: CircularProgressIndicator(color: AppColors.adminPrimary),
+          );
+        }
+        if (_patientVm.currentHospital.value == null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    _patientVm.errorMessage.value.isEmpty
+                        ? 'Hospital details are unavailable.'
+                        : _patientVm.errorMessage.value,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: AppColors.textSecondary),
+                  ),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: _resolvedHospitalId > 0
+                        ? () => _patientVm.fetchHospitalDetails(_resolvedHospitalId)
+                        : () => Get.back(),
+                    child: Text(_resolvedHospitalId > 0 ? 'Try again' : 'Go back'),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
@@ -245,13 +275,32 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
               const SizedBox(height: 24),
 
               // 3. Doctors in Department List
-              Text(
-                'Doctors in ${_getCurrentDeptName()}',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      'Doctors in ${_getCurrentDeptName()}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: doctorsCount == 0
+                        ? null
+                        : () => Get.toNamed(
+                              AppRoutes.doctorList,
+                              arguments: {
+                                'hospitalId': _resolvedHospitalId,
+                                'hospital': hospital,
+                              },
+                            ),
+                    child: const Text('View all'),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -480,8 +529,8 @@ class _HospitalDetailViewState extends State<HospitalDetailView> {
                       color: isSelected
                           ? Colors.white
                           : (isAvailable
-                              ? AppColors.adminPrimary
-                              : AppColors.textSecondary),
+                          ? AppColors.adminPrimary
+                          : AppColors.textSecondary),
                     ),
                   ),
                 ),

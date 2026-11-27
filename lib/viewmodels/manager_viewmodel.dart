@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -13,11 +14,58 @@ class ManagerViewModel extends GetxController {
   final errorMessage = ''.obs;
   Timer? _statusTimer;
 
+  // --- Manager Dashboard Live Stats & Queues ---
+  final tokensToday = 0.obs;
+  final inQueueNow = 0.obs;
+  final patientsServed = 0.obs;
+  final avgConsultationMins = 0.obs;
+  final todayQueues = <Map<String, dynamic>>[].obs;
+  final isDashboardLoading = false.obs;
+
+  int _dashboardInt(dynamic value) =>
+      value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
+
+  Future<void> fetchDashboard({String? date}) async {
+    isDashboardLoading.value = true;
+    try {
+      final response = await ApiService.getManagerDashboard(date: date);
+      if (response['success'] == true) {
+        // Backend: GET /api/queue/stats -> { success, stats: { tokens_issued, in_queue,
+        // served, avg_consult_minutes, doctors: [...] } }
+        final raw = response['stats'] is Map
+            ? Map<String, dynamic>.from(response['stats'] as Map)
+            : <String, dynamic>{};
+        tokensToday.value = _dashboardInt(raw['tokens_issued']);
+        inQueueNow.value = _dashboardInt(raw['in_queue']);
+        patientsServed.value = _dashboardInt(raw['served']);
+        avgConsultationMins.value = _dashboardInt(raw['avg_consult_minutes']);
+        final queueData = raw['doctors'];
+        if (queueData is List) {
+          todayQueues.assignAll(
+            queueData.whereType<Map>().map(
+              (item) => Map<String, dynamic>.from(item),
+            ),
+          );
+        } else {
+          todayQueues.clear();
+        }
+        errorMessage.value = '';
+      } else {
+        errorMessage.value =
+            response['message']?.toString() ??
+            'Dashboard data could not be loaded.';
+      }
+    } catch (e) {
+      errorMessage.value = 'Could not load live dashboard data: $e';
+    } finally {
+      isDashboardLoading.value = false;
+    }
+  }
 
   void startStatusPolling() {
     if (_statusTimer != null && _statusTimer!.isActive) return;
     _statusTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
-      await loadMyHospital(routeByStatus: true);
+      await _checkStatusSilently();
     });
   }
 
@@ -26,23 +74,65 @@ class ManagerViewModel extends GetxController {
     _statusTimer = null;
   }
 
+  Future<void> _checkStatusSilently() async {
+    try {
+      final response = await ApiService.getMyHospital();
+      final rawHospital = response['hospital'] ?? response['data'];
+      if (response['success'] == true && rawHospital is Map) {
+        final hosp = HospitalModel.fromMap(
+          Map<String, dynamic>.from(rawHospital),
+        );
+        final newStatus = hosp.status.trim().toLowerCase();
+        currentHospital.value = hosp;
+
+        if (newStatus != 'pending' && newStatus.isNotEmpty) {
+          stopStatusPolling();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _routeBasedOnHospital(hosp);
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _routeBasedOnHospital(HospitalModel hosp) {
+    final status = hosp.status.trim().toLowerCase();
+    if (status == 'approved') {
+      stopStatusPolling();
+      Get.offAllNamed(AppRoutes.managerDashboard);
+    } else if (status == 'rejected') {
+      stopStatusPolling();
+      isResubmitting.value = true;
+      prefillFromHospital(hosp);
+      Get.offAllNamed(AppRoutes.registrationRejected);
+    } else if (status == 'suspended') {
+      stopStatusPolling();
+      Get.offAllNamed(AppRoutes.hospitalSuspended);
+    } else if (status == 'pending') {
+      Get.offAllNamed(AppRoutes.pendingApproval);
+      startStatusPolling();
+    } else {
+      Get.offAllNamed(AppRoutes.registrationForm);
+    }
+  }
+
   // --- Hospital Registration (Steps 1-4) ---
   final currentStep = 1.obs;
   final isResubmitting = false.obs;
 
   // Step 1: Hospital details
-  final hospitalNameC = TextEditingController(text: 'City General Hospital');
+  final hospitalNameC = TextEditingController();
   final hospitalType = 'Private'.obs;
-  final cityC = TextEditingController(text: 'Karachi');
+  final cityC = TextEditingController();
   final addressC = TextEditingController();
-  final opdTimingsC = TextEditingController(text: '9:00 AM - 8:00 PM');
+  final opdTimingsC = TextEditingController();
 
   // Step 2 (M6): Manager details
   final managerNameC = TextEditingController();
   final managerEmailC = TextEditingController();
   final managerPhoneC = TextEditingController();
   final managerDesignation = 'Medical Superintendent'.obs;
-  final isAuthorizedConfirmed = true.obs;
+  final isAuthorizedConfirmed = false.obs;
 
   static const List<String> hospitalTypes = [
     'Private',
@@ -57,33 +147,31 @@ class ManagerViewModel extends GetxController {
     'Administrator',
   ];
 
-  //  Logo & verification documents
+  // Step 3 (M7): Logo & verification documents
   final logoFileName = ''.obs;
   final logoFileSize = ''.obs;
   final logoUrl = ''.obs;
   final logoBase64 = ''.obs;
 
-  // License document (file 1) - required
   final licenseDocName = ''.obs;
   final licenseDocSize = ''.obs;
   final licenseDocUrl = ''.obs;
   final documentBase64 = ''.obs;
   final documentType = 'application/pdf'.obs;
 
-  // Registration certificate (file 2) - optional
   final certificateDocName = ''.obs;
   final certificateDocSize = ''.obs;
   final certificateDocUrl = ''.obs;
   final certificateBase64 = ''.obs;
   final certificateDataType = 'application/pdf'.obs;
 
-  // Review & submit
-  final isTermsConfirmed = true.obs;
+  // Step 4 (M8): Review & submit
+  final isTermsConfirmed = false.obs;
 
-  //  Current Hospital Status
+  // --- Current Hospital Status (M9 Rejected / M11 Suspended) ---
   final currentHospital = Rxn<HospitalModel>();
 
-  // Manage Departments
+  // --- Manage Departments (M10) ---
   final departments = <DepartmentModel>[].obs;
   final departmentSearchQuery = ''.obs;
 
@@ -96,73 +184,110 @@ class ManagerViewModel extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    _seedDefaultDepartmentsIfEmpty();
-    _prefillManagerFromAuth();
-  }
-
-  void _prefillManagerFromAuth() {
-    ApiService.getUserData().then((user) {
-      if (user != null) {
-        if (user['email'] != null && user['email'].toString().isNotEmpty) {
-          managerEmailC.text = user['email'].toString();
-        }
-        if (user['name'] != null && user['name'].toString().isNotEmpty) {
-          managerNameC.text = user['name'].toString();
-        }
+    prefillManagerFromAuth();
+    ever(currentHospital, (hosp) {
+      if (hosp != null && hosp.status.trim().toLowerCase() == 'pending') {
+        startStatusPolling();
       }
     });
   }
 
+  /// Pre-fills the manager contact fields from the logged-in account.
+  void prefillManagerFromAuth() {
+    ApiService.getUserData().then((user) {
+      if (user == null) return;
+      final email = user['email']?.toString() ?? '';
+      final name = user['name']?.toString() ?? '';
+      if (email.isNotEmpty && managerEmailC.text.isEmpty)
+        managerEmailC.text = email;
+      if (name.isNotEmpty && managerNameC.text.isEmpty)
+        managerNameC.text = name;
+    });
+  }
+
+  /// Called on logout so the next account never sees the previous manager's data.
+  void resetSession() {
+    stopStatusPolling();
+    currentHospital.value = null;
+    isResubmitting.value = false;
+    hospitalNameC.clear();
+    cityC.clear();
+    addressC.clear();
+    opdTimingsC.clear();
+    managerNameC.clear();
+    managerEmailC.clear();
+    managerPhoneC.clear();
+  }
+
   @override
   void onClose() {
-    _statusTimer?.cancel();
+    stopStatusPolling();
+    hospitalNameC.dispose();
+    cityC.dispose();
+    addressC.dispose();
+    opdTimingsC.dispose();
+    managerNameC.dispose();
+    managerEmailC.dispose();
+    managerPhoneC.dispose();
     super.onClose();
   }
 
+  // --- Live Status Polling (Pending -> Approved / Rejected) ---
+  // void startStatusPolling() {
+  // stopStatusPolling();
+  // _statusTimer = Timer.periodic(const Duration(seconds: 5), (_) async {
+  // await _checkStatusSilently();
+  // });
+  // }
 
+  // void stopStatusPolling() {
+  // _statusTimer?.cancel();
+  // _statusTimer = null;
+  // }
 
-  void _seedDefaultDepartmentsIfEmpty() {
-    if (departments.isEmpty) {
-      departments.assignAll([
-        const DepartmentModel(
-          departmentId: '1',
-          hospitalId: '1',
-          name: 'Cardiology',
-          doctorCount: 3,
-          dailyTokenLimit: 120,
-          isActive: true,
-          iconKey: 'cardiology',
-        ),
-        const DepartmentModel(
-          departmentId: '2',
-          hospitalId: '1',
-          name: 'Neurology',
-          doctorCount: 2,
-          dailyTokenLimit: 80,
-          isActive: true,
-          iconKey: 'neurology',
-        ),
-        const DepartmentModel(
-          departmentId: '3',
-          hospitalId: '1',
-          name: 'Pediatrics',
-          doctorCount: 4,
-          dailyTokenLimit: 160,
-          isActive: true,
-          iconKey: 'pediatrics',
-        ),
-        const DepartmentModel(
-          departmentId: '4',
-          hospitalId: '1',
-          name: 'Orthopedics',
-          doctorCount: 1,
-          dailyTokenLimit: 30,
-          isActive: false,
-          iconKey: 'orthopedics',
-        ),
-      ]);
-    }
-  }
+  // Future<void> _checkStatusSilently() async {
+  // try {
+  // final response = await ApiService.getMyHospital();
+  // final rawHospital = response['hospital'] ?? response['data'];
+  // if (response['success'] == true && rawHospital is Map) {
+  // final hosp = HospitalModel.fromMap(
+  // Map<String, dynamic>.from(rawHospital),
+  // );
+  // final previousStatus = currentHospital.value?.status.trim().toLowerCase();
+  // final newStatus = hosp.status.trim().toLowerCase();
+  //
+  // currentHospital.value = hosp;
+  //
+  // // Agar status pending se badal kar approved/rejected/suspended ho jaye
+  // if (newStatus != 'pending' && newStatus != previousStatus) {
+  // stopStatusPolling();
+  // WidgetsBinding.instance.addPostFrameCallback((_) {
+  // _routeBasedOnHospital(hosp);
+  // });
+  // }
+  // }
+  // } catch (_) {
+  // // Silent retry on next tick
+  // }
+  // }
+
+  // void _routeBasedOnHospital(HospitalModel hosp) {
+  // final status = hosp.status.trim().toLowerCase();
+  // if (status == 'rejected') {
+  // isResubmitting.value = true;
+  // prefillFromHospital(hosp);
+  // Get.offAllNamed(AppRoutes.registrationRejected);
+  // } else if (status == 'suspended') {
+  // Get.offAllNamed(AppRoutes.hospitalSuspended);
+  // } else if (status == 'pending') {
+  // Get.offAll(() => const PendingApprovalView());
+  // startStatusPolling();
+  // } else if (status == 'approved') {
+  // Get.offAllNamed(AppRoutes.managerDashboard);
+  // } else {
+  // Get.offAllNamed(AppRoutes.registrationForm);
+  // }
+  // }
 
   void goToStep(int step) {
     if (step >= 1 && step <= 4) {
@@ -184,7 +309,12 @@ class ManagerViewModel extends GetxController {
     }
   }
 
-  void attachLogo({required String name, required String size, String url = '', String base64 = ''}) {
+  void attachLogo({
+    required String name,
+    required String size,
+    String url = '',
+    String base64 = '',
+  }) {
     logoFileName.value = name;
     logoFileSize.value = size;
     logoUrl.value = url;
@@ -226,11 +356,16 @@ class ManagerViewModel extends GetxController {
     }
     cityC.text = hospital.city;
     addressC.text = hospital.address;
-    opdTimingsC.text = hospital.opdTimings.isNotEmpty ? hospital.opdTimings : '9:00 AM - 8:00 PM';
+    opdTimingsC.text = hospital.opdTimings.isNotEmpty
+        ? hospital.opdTimings
+        : '9:00 AM - 8:00 PM';
 
-    if (hospital.managerName.isNotEmpty) managerNameC.text = hospital.managerName;
-    if (hospital.managerEmail.isNotEmpty) managerEmailC.text = hospital.managerEmail;
-    if (hospital.managerPhone.isNotEmpty) managerPhoneC.text = hospital.managerPhone;
+    if (hospital.managerName.isNotEmpty)
+      managerNameC.text = hospital.managerName;
+    if (hospital.managerEmail.isNotEmpty)
+      managerEmailC.text = hospital.managerEmail;
+    if (hospital.managerPhone.isNotEmpty)
+      managerPhoneC.text = hospital.managerPhone;
     if (designations.contains(hospital.managerDesignation)) {
       managerDesignation.value = hospital.managerDesignation;
     }
@@ -245,12 +380,29 @@ class ManagerViewModel extends GetxController {
   }
 
   Future<void> submitRegistration() async {
-    if (!isTermsConfirmed.value) {
+    if (isLoading.value) return;
+    if (!isTermsConfirmed.value || !isAuthorizedConfirmed.value) {
       Get.snackbar(
-        'Confirmation Required',
-        'Please confirm that the information is accurate and agree to the Turnly Terms.',
-        backgroundColor: Colors.orange.shade50,
-        colorText: Colors.orange.shade900,
+        'Confirmation required',
+        'Confirm that you are authorized and that the submitted information is accurate.',
+      );
+      return;
+    }
+
+    final name = hospitalNameC.text.trim();
+    final city = cityC.text.trim();
+    final address = addressC.text.trim();
+    final managerName = managerNameC.text.trim();
+    final managerEmail = managerEmailC.text.trim();
+    if (name.isEmpty ||
+        city.isEmpty ||
+        address.isEmpty ||
+        managerName.isEmpty ||
+        managerEmail.isEmpty ||
+        !GetUtils.isEmail(managerEmail)) {
+      Get.snackbar(
+        'Missing information',
+        'Please complete hospital name, city, address, manager name and a valid manager email.',
       );
       return;
     }
@@ -258,81 +410,65 @@ class ManagerViewModel extends GetxController {
     isLoading.value = true;
     errorMessage.value = '';
     try {
-      final payload = {
-        'name': hospitalNameC.text.trim(),
+      final payload = <String, dynamic>{
+        'name': name,
         'hospital_type': hospitalType.value,
-        'city': cityC.text.trim(),
-        'address': addressC.text.trim(),
+        'city': city,
+        'address': address,
+        'phone': managerPhoneC.text.trim(),
+        'email': managerEmail,
         'opd_timings': opdTimingsC.text.trim(),
-        'logo_url': logoUrl.value.isNotEmpty ? logoUrl.value : logoFileName.value,
-        'manager_name': managerNameC.text.trim(),
-        'manager_email': managerEmailC.text.trim(),
+        'logo_url': logoUrl.value,
+        'manager_name': managerName,
+        'manager_email': managerEmail,
         'manager_phone': managerPhoneC.text.trim(),
         'manager_designation': managerDesignation.value,
-        'license_doc_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
-        'license_doc_size': licenseDocSize.value.isNotEmpty ? licenseDocSize.value : null,
-        'license_doc_url': licenseDocUrl.value.isNotEmpty ? licenseDocUrl.value : null,
-        'certificate_doc_name': certificateDocName.value.isNotEmpty ? certificateDocName.value : null,
-        'certificate_doc_size': certificateDocSize.value.isNotEmpty ? certificateDocSize.value : null,
-        'certificate_doc_url': certificateDocUrl.value.isNotEmpty ? certificateDocUrl.value : null,
-        // Logo binary
+        'license_doc_name': licenseDocName.value,
+        'license_doc_size': licenseDocSize.value,
+        'license_doc_url': licenseDocUrl.value,
+        'certificate_doc_name': certificateDocName.value,
+        'certificate_doc_size': certificateDocSize.value,
+        'certificate_doc_url': certificateDocUrl.value,
+        // Binary documents (stored as BYTEA by the backend)
         'logo_base64': logoBase64.value.isNotEmpty ? logoBase64.value : null,
         'logo_name': logoFileName.value.isNotEmpty ? logoFileName.value : null,
-        // License document binary
-        'document_base64': documentBase64.value.isNotEmpty ? documentBase64.value : null,
-        'document_name': licenseDocName.value.isNotEmpty ? licenseDocName.value : null,
-        'document_type': documentType.value.isNotEmpty ? documentType.value : 'application/pdf',
-        // Certificate document binary
-        'certificate_base64': certificateBase64.value.isNotEmpty ? certificateBase64.value : null,
-        'certificate_data_type': certificateDataType.value.isNotEmpty ? certificateDataType.value : 'application/pdf',
+        'document_base64': documentBase64.value.isNotEmpty
+            ? documentBase64.value
+            : null,
+        'document_name': licenseDocName.value.isNotEmpty
+            ? licenseDocName.value
+            : null,
+        'document_type': documentType.value,
+        'certificate_base64': certificateBase64.value.isNotEmpty
+            ? certificateBase64.value
+            : null,
+        'certificate_data_type': certificateDataType.value,
       };
 
-      final shouldResubmit = isResubmitting.value ||
-          (currentHospital.value != null &&
-              currentHospital.value!.status.toLowerCase() == 'rejected');
-
-      var response = shouldResubmit
+      final response = isResubmitting.value
           ? await ApiService.resubmitHospital(payload)
           : await ApiService.registerHospital(payload);
-
-      // Automatic fallback: if register returned rejected / resubmit note, retry with resubmit
-      if (response['success'] != true &&
-          (response['message']?.toString().toLowerCase().contains('rejected') == true ||
-           response['message']?.toString().toLowerCase().contains('resubmit') == true)) {
-        response = await ApiService.resubmitHospital(payload);
+      if (response['success'] != true) {
+        errorMessage.value =
+            (response['message'] ?? 'Registration submission failed')
+                .toString();
+        Get.snackbar('Submission failed', errorMessage.value);
+        return;
       }
 
-      if (response['success'] == true) {
-        if (response['hospital'] is Map<String, dynamic>) {
-          currentHospital.value = HospitalModel.fromMap(
-            Map<String, dynamic>.from(response['hospital'] as Map),
-          );
-        }
-        isResubmitting.value = false;
-        Get.snackbar(
-          'Submitted',
-          response['message'] ?? 'Hospital registration submitted for approval',
-          backgroundColor: Colors.green.shade50,
-          colorText: Colors.green.shade800,
-        );
-        // Navigate to pending approval view to await admin review
-        Get.offAllNamed(AppRoutes.pendingApproval);
-      } else {
-        errorMessage.value = response['message'] ?? 'Submission failed';
-        Get.snackbar(
-          'Error',
-          errorMessage.value,
-          backgroundColor: Colors.red.shade50,
-          colorText: Colors.red.shade800,
+      final hospital = response['hospital'] ?? response['data'];
+      if (hospital is Map) {
+        currentHospital.value = HospitalModel.fromMap(
+          Map<String, dynamic>.from(hospital),
         );
       }
-    } catch (_) {
-      Get.snackbar(
-        'Error',
-        'Unable to reach server. Please try again.',
-        backgroundColor: Colors.red.shade50,
-        colorText: Colors.red.shade800,
-      );
+      isResubmitting.value = false;
+      Get.offAllNamed(AppRoutes.pendingApproval);
+      startStatusPolling();
+    } catch (e) {
+      errorMessage.value =
+          'Unable to submit registration. Check your connection and try again.';
+      Get.snackbar('Network error', errorMessage.value);
     } finally {
       isLoading.value = false;
     }
@@ -342,27 +478,18 @@ class ManagerViewModel extends GetxController {
     isLoading.value = true;
     try {
       final response = await ApiService.getMyHospital();
-      if (response['success'] == true && response['hospital'] is Map) {
+      final rawHospital = response['hospital'] ?? response['data'];
+
+      if (response['success'] == true && rawHospital is Map) {
         final hosp = HospitalModel.fromMap(
-          Map<String, dynamic>.from(response['hospital'] as Map),
+          Map<String, dynamic>.from(rawHospital),
         );
         currentHospital.value = hosp;
         if (routeByStatus) {
-          if (hosp.status == 'approved') {
-            stopStatusPolling();
-            Get.offAllNamed(AppRoutes.managerDashboard);
-          } else if (hosp.status == 'pending') {
-            Get.offAllNamed(AppRoutes.pendingApproval);
-          } else if (hosp.status == 'rejected') {
-            stopStatusPolling();
-            Get.offAllNamed(AppRoutes.registrationRejected);
-          } else if (hosp.status == 'suspended') {
-            stopStatusPolling();
-            Get.offAllNamed(AppRoutes.hospitalSuspended);
-          }
+          _routeBasedOnHospital(hosp);
         }
       } else if (routeByStatus) {
-        // No hospital registered yet -> start registration flow automatically
+        currentHospital.value = null;
         currentStep.value = 1;
         Get.offAllNamed(AppRoutes.registrationForm);
       }
@@ -373,7 +500,7 @@ class ManagerViewModel extends GetxController {
     }
   }
 
-  Future<void> loadDepartments() async {
+  Future loadDepartments() async {
     isLoading.value = true;
     try {
       final response = await ApiService.getDepartments(
@@ -381,7 +508,7 @@ class ManagerViewModel extends GetxController {
       );
       if (response['success'] == true && response['departments'] is List) {
         final list = (response['departments'] as List)
-            .whereType<Map>()
+            .whereType()
             .map((e) => DepartmentModel.fromMap(Map<String, dynamic>.from(e)))
             .toList();
         departments.assignAll(list);
@@ -393,12 +520,13 @@ class ManagerViewModel extends GetxController {
     }
   }
 
-  Future<void> toggleDepartment(DepartmentModel dept, bool value) async {
-    final index = departments.indexWhere((d) => d.departmentId == dept.departmentId);
+  Future toggleDepartment(DepartmentModel dept, bool value) async {
+    final index = departments.indexWhere(
+      (d) => d.departmentId == dept.departmentId,
+    );
     if (index != -1) {
       departments[index] = dept.copyWith(isActive: value);
     }
-
     try {
       final response = await ApiService.toggleDepartment(
         dept.departmentId,
@@ -414,11 +542,12 @@ class ManagerViewModel extends GetxController {
         );
       }
     } catch (_) {
-      // Keep optimistic toggle if server is offline during local testing
+      if (index != -1) departments[index] = dept;
+      Get.snackbar('Network error', 'Department status could not be updated.');
     }
   }
 
-  Future<void> addDepartment({
+  Future addDepartment({
     required String name,
     String description = '',
     int dailyTokenLimit = 50,
@@ -433,7 +562,6 @@ class ManagerViewModel extends GetxController {
         'is_active': true,
         'icon_key': iconKey,
       });
-
       if (response['success'] == true && response['department'] is Map) {
         final created = DepartmentModel.fromMap(
           Map<String, dynamic>.from(response['department'] as Map),
@@ -447,36 +575,18 @@ class ManagerViewModel extends GetxController {
           colorText: Colors.green.shade800,
         );
       } else {
-        final localDept = DepartmentModel(
-          departmentId: DateTime.now().millisecondsSinceEpoch.toString(),
-          hospitalId: currentHospital.value?.hospitalId ?? '1',
-          name: name.trim(),
-          description: description.trim(),
-          dailyTokenLimit: dailyTokenLimit,
-          isActive: true,
-          doctorCount: 0,
-          iconKey: iconKey,
+        Get.snackbar(
+          'Error',
+          response['message'] ?? 'Department could not be created',
         );
-        departments.add(localDept);
-        Get.back();
       }
     } catch (_) {
-      final localDept = DepartmentModel(
-        departmentId: DateTime.now().millisecondsSinceEpoch.toString(),
-        hospitalId: currentHospital.value?.hospitalId ?? '1',
-        name: name.trim(),
-        description: description.trim(),
-        dailyTokenLimit: dailyTokenLimit,
-        isActive: true,
-        doctorCount: 0,
-        iconKey: iconKey,
+      Get.snackbar(
+        'Network error',
+        'Department could not be created. Please try again.',
       );
-      departments.add(localDept);
-      Get.back();
     } finally {
       isLoading.value = false;
     }
   }
-
-  
 }

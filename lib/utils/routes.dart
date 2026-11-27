@@ -7,17 +7,20 @@ import '../views/auth/signup_view.dart';
 import '../views/auth/otp_view.dart';
 import '../views/auth/otp_success_view.dart';
 import '../views/patient/home_view.dart';
+import '../views/patient/alerts_view.dart';
+import '../views/patient/token_confirmation_view.dart';
+import '../views/manager/pending_approval_view.dart';
+import '../views/auth/forgot_password_view.dart';
+import '../views/auth/reset_password_view.dart';
 import '../views/patient/hospital_detail_view.dart';
 import '../views/patient/doctor_list_view.dart';
 import '../views/patient/booking_view.dart';
-import '../views/patient/token_confirmation_view.dart';
 import '../views/patient/my_tokens_view.dart';
 import '../views/patient/my_token_view.dart';
 import '../views/patient/family_members_view.dart';
 import '../views/patient/profile_view.dart';
 import '../views/patient/ai_guide_view.dart';
 import '../views/manager/registration_form_view.dart';
-import '../views/manager/pending_approval_view.dart';
 import '../views/manager/registration_rejected_view.dart';
 import '../views/manager/manage_departments_view.dart';
 import '../views/manager/hospital_suspended_view.dart';
@@ -26,8 +29,6 @@ import '../views/manager/doctor_management_view.dart';
 import '../views/manager/queue_control_view.dart';
 import '../views/admin/admin_panel_view.dart';
 import '../views/admin/platform_stats_view.dart';
-import '../views/auth/forgot_password_view.dart';
-import '../views/auth/reset_password_view.dart';
 
 class AppRoutes {
   static const splash = '/splash';
@@ -37,17 +38,20 @@ class AppRoutes {
   static const otp = '/otp';
   static const otpSuccess = '/otp-success';
   static const home = '/home';
+  static const alerts = '/alerts';
+  static const tokenConfirmation = '/token-confirmation';
+  static const pendingApproval = '/pending-approval';
+  static const forgotPassword = '/forgot-password';
+  static const resetPassword = '/reset-password';
   static const hospitalDetail = '/hospital-detail';
   static const doctorList = '/doctor-list';
   static const booking = '/booking';
-  static const tokenConfirmation = '/token-confirmation';
   static const myTokens = '/my-tokens';
   static const myToken = '/my-token';
   static const familyMembers = '/family-members';
   static const profile = '/profile';
   static const aiGuide = '/ai-guide';
   static const registrationForm = '/registration-form';
-  static const pendingApproval = '/pending-approval';
   static const registrationRejected = '/registration-rejected';
   static const manageDepartments = '/manage-departments';
   static const hospitalSuspended = '/hospital-suspended';
@@ -56,8 +60,6 @@ class AppRoutes {
   static const queueControl = '/queue-control';
   static const adminPanel = '/admin-panel';
   static const platformStats = '/platform-stats';
-  static const forgotPassword = '/forgot-password';
-  static const resetPassword = '/reset-password';
 }
 
 class AppPages {
@@ -69,17 +71,20 @@ class AppPages {
     GetPage(name: AppRoutes.otp, page: () => const OtpView()),
     GetPage(name: AppRoutes.otpSuccess, page: () => const OtpSuccessView()),
     GetPage(name: AppRoutes.home, page: () => const HomeView()),
+    GetPage(name: AppRoutes.alerts, page: () => const AlertsView()),
+    GetPage(name: AppRoutes.tokenConfirmation, page: () => const TokenConfirmationView()),
+    GetPage(name: AppRoutes.pendingApproval, page: () => const PendingApprovalView()),
+    GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
+    GetPage(name: AppRoutes.resetPassword, page: () => const ResetPasswordView()),
     GetPage(name: AppRoutes.hospitalDetail, page: () => const HospitalDetailView()),
     GetPage(name: AppRoutes.doctorList, page: () => const DoctorListView()),
     GetPage(name: AppRoutes.booking, page: () => const BookingView()),
-    GetPage(name: AppRoutes.tokenConfirmation, page: () => const TokenConfirmationView()),
     GetPage(name: AppRoutes.myTokens, page: () => const MyTokensView()),
     GetPage(name: AppRoutes.myToken, page: () => const MyTokenView()),
     GetPage(name: AppRoutes.familyMembers, page: () => const FamilyMembersView()),
     GetPage(name: AppRoutes.profile, page: () => const ProfileView()),
     GetPage(name: AppRoutes.aiGuide, page: () => const AiGuideView()),
     GetPage(name: AppRoutes.registrationForm, page: () => const RegistrationFormView()),
-    GetPage(name: AppRoutes.pendingApproval, page: () => const PendingApprovalView()),
     GetPage(name: AppRoutes.registrationRejected, page: () => const RegistrationRejectedView()),
     GetPage(name: AppRoutes.manageDepartments, page: () => const ManageDepartmentsView()),
     GetPage(name: AppRoutes.hospitalSuspended, page: () => const HospitalSuspendedView()),
@@ -88,7 +93,5 @@ class AppPages {
     GetPage(name: AppRoutes.queueControl, page: () => const QueueControlView()),
     GetPage(name: AppRoutes.adminPanel, page: () => const AdminPanelView()),
     GetPage(name: AppRoutes.platformStats, page: () => const PlatformStatsView()),
-    GetPage(name: AppRoutes.forgotPassword, page: () => const ForgotPasswordView()),
-    GetPage(name: AppRoutes.resetPassword, page: () => const ResetPasswordView()),
   ];
 }

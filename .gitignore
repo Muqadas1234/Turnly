@@ -7,4 +7,6 @@ build/
 .idea/
 node_modules/
 functions/lib/
-firebase_options.dart
+android/local.properties
+android/.kotlin/
+**/GeneratedPluginRegistrant.java
