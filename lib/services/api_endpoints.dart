@@ -41,7 +41,6 @@ class ApiEndpoints {
   static String adminDeleteHospital(int id) => '$baseUrl/admin/hospitals/$id';
   static String get adminStats => '$baseUrl/admin/stats';
   static String get adminManagers => '$baseUrl/admin/managers';
-  static String get adminUsers => '$baseUrl/admin/users';
 
   // Department Management Endpoints
   static String get departmentsUrl => '$baseUrl/departments';

@@ -26,12 +26,6 @@ class AdminViewModel extends GetxController {
   final managerStatusFilter = 'all'.obs; // 'all', 'approved', 'pending', 'rejected', 'suspended'
   final managerSearchText = ''.obs;
 
-  // Platform Users state (alias)
-  final users = <Map<String, dynamic>>[].obs;
-  final isUsersLoading = false.obs;
-  final userRoleFilter = 'all'.obs;
-  final userSearchText = ''.obs;
-
   int _filterRequestGen = 0;
   Timer? _poller;
 
@@ -306,40 +300,6 @@ class AdminViewModel extends GetxController {
   void searchManagers(String query) {
     managerSearchText.value = query;
     fetchManagers(search: query);
-  }
-
-  Future<void> fetchUsers({String? role, String? search}) async {
-    isUsersLoading.value = true;
-    try {
-      final targetRole = role ?? (userRoleFilter.value == 'all' ? null : userRoleFilter.value);
-      final targetSearch = search ?? userSearchText.value;
-      final response = await ApiService.getAdminUsers(role: targetRole, search: targetSearch);
-      if (response['success'] == true) {
-        final list = (response['data'] as List? ?? [])
-            .map((e) => Map<String, dynamic>.from(e as Map))
-            .toList();
-        users.assignAll(list);
-      }
-    } catch (_) {
-      Get.snackbar(
-        'Error',
-        'Failed to fetch users',
-        backgroundColor: Colors.red.shade50,
-        colorText: Colors.red.shade800,
-      );
-    } finally {
-      isUsersLoading.value = false;
-    }
-  }
-
-  void setUserRoleFilter(String role) {
-    userRoleFilter.value = role;
-    fetchUsers(role: role == 'all' ? null : role);
-  }
-
-  void searchUsers(String query) {
-    userSearchText.value = query;
-    fetchUsers(search: query);
   }
 
   Future<void> fetchStats() async {

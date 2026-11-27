@@ -279,18 +279,6 @@ class ApiService {
     return _decode(response);
   }
 
-  // Fetch registered platform users (managers, patients)
-  static Future<Map<String, dynamic>> getAdminUsers({String? role, String? search}) async {
-    final headers = await _authHeaders();
-    final queryParams = <String, String>{};
-    if (role != null && role.isNotEmpty && role != 'all') queryParams['role'] = role;
-    if (search != null && search.trim().isNotEmpty) queryParams['search'] = search.trim();
-
-    final uri = Uri.parse(ApiEndpoints.adminUsers).replace(queryParameters: queryParams.isEmpty ? null : queryParams);
-    final response = await http.get(uri, headers: headers);
-    return _decode(response);
-  }
-
   // Fetch overall platform statistics
   static Future<Map<String, dynamic>> getPlatformStats() async {
     final headers = await _authHeaders();
