@@ -489,7 +489,7 @@ class _RegistrationFormViewState extends State<RegistrationFormView> {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isUploaded ? AppColors.success.withOpacity(0.6) : AppColors.border,
+            color: isUploaded ? AppColors.success.withValues(alpha: 0.6) : AppColors.border,
             width: isUploaded ? 1.3 : 1,
           ),
         ),

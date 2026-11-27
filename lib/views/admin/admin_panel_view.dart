@@ -244,7 +244,7 @@ class AdminPanelView extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white.withOpacity(0.2)
+                    ? Colors.white.withValues(alpha: 0.2)
                     : AppColors.background,
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1010,7 +1010,7 @@ class AdminPanelView extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.adminPrimary.withOpacity(0.1),
+                    backgroundColor: AppColors.adminPrimary.withValues(alpha: 0.1),
                     child: const Icon(
                       Icons.admin_panel_settings,
                       size: 28,

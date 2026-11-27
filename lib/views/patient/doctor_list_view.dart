@@ -132,9 +132,9 @@ class _DoctorListViewState extends State<DoctorListView> {
                                 ),
                                 child: ListTile(
                                   onTap: available ? () => vm.selectDoctor(doctor) : null,
-                                  leading: CircleAvatar(
+                                  leading: const CircleAvatar(
                                     backgroundColor: AppColors.adminPrimaryLight,
-                                    child: const Icon(Icons.medical_services_outlined, color: AppColors.adminPrimary),
+                                    child: Icon(Icons.medical_services_outlined, color: AppColors.adminPrimary),
                                   ),
                                   title: Text(
                                     doctor['name']?.toString() ?? 'Doctor',

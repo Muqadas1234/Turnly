@@ -348,7 +348,7 @@ size: 26,
   _buildFieldLabel('Department'),
   const SizedBox(height: 8),
   DropdownButtonFormField(
-    value: _selectedDepartmentId,
+    initialValue: _selectedDepartmentId,
     icon: const Icon(
       Icons.keyboard_arrow_down_rounded,
       color: AppColors.textSecondary,

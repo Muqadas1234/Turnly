@@ -209,10 +209,12 @@ class ManagerViewModel extends GetxController {
       if (user == null) return;
       final email = user['email']?.toString() ?? '';
       final name = user['name']?.toString() ?? '';
-      if (email.isNotEmpty && managerEmailC.text.isEmpty)
+      if (email.isNotEmpty && managerEmailC.text.isEmpty) {
         managerEmailC.text = email;
-      if (name.isNotEmpty && managerNameC.text.isEmpty)
+      }
+      if (name.isNotEmpty && managerNameC.text.isEmpty) {
         managerNameC.text = name;
+      }
     });
   }
 
@@ -371,12 +373,15 @@ class ManagerViewModel extends GetxController {
         ? hospital.opdTimings
         : '9:00 AM - 8:00 PM';
 
-    if (hospital.managerName.isNotEmpty)
+    if (hospital.managerName.isNotEmpty) {
       managerNameC.text = hospital.managerName;
-    if (hospital.managerEmail.isNotEmpty)
+    }
+    if (hospital.managerEmail.isNotEmpty) {
       managerEmailC.text = hospital.managerEmail;
-    if (hospital.managerPhone.isNotEmpty)
+    }
+    if (hospital.managerPhone.isNotEmpty) {
       managerPhoneC.text = hospital.managerPhone;
+    }
     if (designations.contains(hospital.managerDesignation)) {
       managerDesignation.value = hospital.managerDesignation;
     }

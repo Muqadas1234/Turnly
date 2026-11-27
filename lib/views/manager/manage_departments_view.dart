@@ -245,7 +245,7 @@ class _ManageDepartmentsViewState extends State<ManageDepartmentsView> {
           ),
           Switch(
             value: dept.isActive,
-            activeColor: Colors.white,
+            activeThumbColor: Colors.white,
             activeTrackColor: AppColors.tealPrimary,
             inactiveThumbColor: Colors.white,
             inactiveTrackColor: AppColors.border,

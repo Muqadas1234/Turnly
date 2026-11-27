@@ -29,7 +29,6 @@ class AppColors {
   static const Color accent = primary;
   static const Color accentLight = primaryExtraLight;
   static const Color darkGreen = primary;
-  static const Color DarkGreen = darkGreen;
   static const Color lightGreenWhistish = primaryExtraLight;
 
   // ── Status / feedback ────────────────────────────────────────────────────

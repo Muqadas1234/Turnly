@@ -374,7 +374,7 @@ class _BookingViewState extends State<BookingView> {
                   );
                 }
                 return DropdownButtonFormField<int>(
-                  value: _selectedFamilyMemberId,
+                  initialValue: _selectedFamilyMemberId,
                   decoration: InputDecoration(
                     labelText: 'Select family member',
                     filled: true,

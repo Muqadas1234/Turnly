@@ -1,5 +1,4 @@
 import 'dart:math' as math;
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -337,13 +336,13 @@ class _SplashViewState extends State<SplashView> with TickerProviderStateMixin {
                             ),
                             SizedBox(height: h * 0.02),
                             Text.rich(
-                              TextSpan(
+                              const TextSpan(
                                 children: [
-                                  const TextSpan(text: 'Your time. '),
+                                  TextSpan(text: 'Your time. '),
                                   TextSpan(
                                     text: 'Your turn.',
                                     style: TextStyle(
-                                      color: const Color(0xFF7BFFFE),
+                                      color: Color(0xFF7BFFFE),
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -1081,8 +1080,8 @@ class _ScenePainter extends CustomPainter {
         ).createShader(floor),
     );
 
-    final rimShader = LinearGradient(
-      colors: [_violet, const Color(0xFFCCFFFF), _blue],
+    final rimShader = const LinearGradient(
+      colors: [_violet, Color(0xFFCCFFFF), _blue],
     ).createShader(floor);
     canvas.drawArc(
       floor,
