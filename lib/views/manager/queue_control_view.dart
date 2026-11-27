@@ -77,6 +77,280 @@ class _QueueControlViewState extends State<QueueControlView> {
     return fallback;
   }
 
+  int _selectedTabIndex = 0; // 0 = Patient Tokens, 1 = Doctor Queues
+
+  Future<void> _completeToken(int tokenId) async {
+    try {
+      _toast(await ManagerApi.completeToken(tokenId), ok: 'Consultation marked as completed');
+    } finally {
+      await vm.fetchDashboard(date: _dateString);
+    }
+  }
+
+  Future<void> _skipToken(int tokenId) async {
+    try {
+      _toast(await ManagerApi.skipToken(tokenId), ok: 'Token skipped');
+    } finally {
+      await vm.fetchDashboard(date: _dateString);
+    }
+  }
+
+  Widget _patientTokenCard(Map<String, dynamic> token) {
+    final tokenId = _id(token['id']);
+    final doctorId = _id(token['doctor_id']);
+    final tokenNum = token['token_number'] ?? '?';
+    final patientName = (token['patient_name'] ?? 'Patient').toString();
+    final patientAge = token['patient_age'];
+    final relation = (token['relation'] ?? '').toString();
+    final phone = (token['account_phone'] ?? token['phone'] ?? '').toString();
+    final isPriority = token['priority'] == true || token['priority']?.toString() == 'true' || token['priority'] == 1;
+    final priorityCat = (token['priority_category'] ?? '').toString();
+    final notes = (token['notes'] ?? '').toString();
+    final status = (token['status'] ?? 'waiting').toString();
+
+    final docName = (token['doctor_name'] ?? 'Doctor').toString();
+    final docQual = (token['qualification'] ?? '').toString();
+    final deptName = (token['department_name'] ?? '').toString();
+    final room = (token['room'] ?? '—').toString();
+    final timing = (token['availability_hours'] ?? '09:00 - 17:00').toString();
+
+    Color statusBg;
+    Color statusColor;
+    String statusLabel;
+    IconData statusIcon;
+
+    if (status == 'serving') {
+      statusBg = AppColors.successBg;
+      statusColor = AppColors.success;
+      statusLabel = 'Serving';
+      statusIcon = Icons.record_voice_over_rounded;
+    } else if (status == 'waiting') {
+      statusBg = const Color(0xFFFFF8E1);
+      statusColor = const Color(0xFFF57C00);
+      statusLabel = 'Waiting';
+      statusIcon = Icons.schedule_rounded;
+    } else if (status == 'done') {
+      statusBg = AppColors.border.withValues(alpha: 0.5);
+      statusColor = AppColors.textSecondary;
+      statusLabel = 'Done';
+      statusIcon = Icons.check_circle_outline_rounded;
+    } else {
+      statusBg = AppColors.errorBg;
+      statusColor = AppColors.error;
+      statusLabel = status.capitalizeFirst ?? status;
+      statusIcon = Icons.info_outline_rounded;
+    }
+
+    return Card(
+      elevation: 0,
+      margin: const EdgeInsets.only(bottom: 12),
+      color: AppColors.surface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: BorderSide(
+          color: status == 'serving' ? AppColors.success.withValues(alpha: 0.4) : AppColors.border,
+          width: status == 'serving' ? 1.5 : 1,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => showPatientDoctorDetailsSheet(context, token: token, doctor: token),
+        borderRadius: BorderRadius.circular(14),
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top row: Token #, Patient name, Status badge
+              Row(
+                children: [
+                  CircleAvatar(
+                    radius: 19,
+                    backgroundColor: status == 'serving' ? AppColors.successBg : AppColors.tealLight,
+                    child: Text(
+                      '#$tokenNum',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        color: status == 'serving' ? AppColors.success : AppColors.tealPrimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          patientName,
+                          style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16, color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '${relation.isNotEmpty ? relation : 'Self'}${patientAge != null ? ' · $patientAge yrs' : ''}${phone.isNotEmpty ? ' · 📞 $phone' : ''}',
+                          style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: statusBg,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: statusColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(statusIcon, size: 14, color: statusColor),
+                        const SizedBox(width: 4),
+                        Text(
+                          statusLabel,
+                          style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: statusColor),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Doctor & Room container
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.medical_services_rounded, size: 16, color: AppColors.tealPrimary),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '$docName${docQual.isNotEmpty ? ' ($docQual)' : ''}',
+                            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.textPrimary),
+                          ),
+                          Text(
+                            '${deptName.isNotEmpty ? '$deptName · ' : ''}Room $room · 🕒 $timing',
+                            style: const TextStyle(fontSize: 11, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.textSecondary),
+                  ],
+                ),
+              ),
+
+              // Priority & Notes
+              if (isPriority || notes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    if (isPriority)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.warning.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '⚠️ Priority${priorityCat.isNotEmpty ? ': $priorityCat' : ''}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.warning),
+                        ),
+                      ),
+                    if (notes.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 2),
+                        child: Text(
+                          'Note: $notes',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 11, fontStyle: FontStyle.italic, color: AppColors.textSecondary),
+                        ),
+                      ),
+                  ],
+                ),
+              ],
+
+              // Actions
+              if (status == 'waiting' && doctorId != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _callNext(doctorId, doctorContext: token),
+                        icon: const Icon(Icons.record_voice_over_rounded, size: 16),
+                        label: const Text('Call Patient'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.tealPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        ),
+                      ),
+                    ),
+                    if (tokenId != null) ...[
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => _skipToken(tokenId),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.warning,
+                          side: const BorderSide(color: AppColors.warning),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        ),
+                        child: const Text('Skip'),
+                      ),
+                    ],
+                  ],
+                ),
+              ] else if (status == 'serving' && tokenId != null) ...[
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _completeToken(tokenId),
+                        icon: const Icon(Icons.check_circle_outline_rounded, size: 16),
+                        label: const Text('Complete Consultation'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.success,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 9),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton(
+                      onPressed: () => _skipToken(tokenId),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.warning,
+                        side: const BorderSide(color: AppColors.warning),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                      ),
+                      child: const Text('Skip'),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   void _toast(Map<String, dynamic> r, {String ok = 'Done'}) {
     final success = r['success'] == true;
     Get.snackbar(
@@ -195,21 +469,125 @@ class _QueueControlViewState extends State<QueueControlView> {
                 vm.inQueueNow.value.toString(),
                 Icons.groups_outlined,
               ),
-              const SizedBox(height: 18),
-              Text(
-                DateUtils.isSameDay(_selectedDate, DateTime.now())
-                    ? 'Today’s doctor queues'
-                    : 'Doctor queues for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
-                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              // Tab Switcher between "Patient Tokens" and "Doctor Queues"
+              Container(
+                margin: const EdgeInsets.only(top: 14, bottom: 16),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedTabIndex = 0),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _selectedTabIndex == 0 ? AppColors.tealPrimary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.confirmation_num_outlined,
+                                size: 16,
+                                color: _selectedTabIndex == 0 ? Colors.white : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Patient Tokens (${vm.todayTokens.length})',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: _selectedTabIndex == 0 ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => setState(() => _selectedTabIndex = 1),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: BoxDecoration(
+                            color: _selectedTabIndex == 1 ? AppColors.tealPrimary : Colors.transparent,
+                            borderRadius: BorderRadius.circular(9),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.medical_services_outlined,
+                                size: 16,
+                                color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Doctor Queues (${vm.todayQueues.length})',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: _selectedTabIndex == 1 ? Colors.white : AppColors.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 10),
-              if (vm.errorMessage.value.isNotEmpty && vm.todayQueues.isEmpty)
-                _emptyState(vm.errorMessage.value)
-              else if (vm.todayQueues.isEmpty)
-                _emptyState('No doctors yet. Add doctors from the Doctors tab to start managing queues.')
-              else
-                ...vm.todayQueues.map((queue) {
-                  final doctorId = _id(queue['id'] ?? queue['doctor_id']);
+              if (_selectedTabIndex == 0) ...[
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            DateUtils.isSameDay(_selectedDate, DateTime.now())
+                                ? 'Today’s Patient Tokens'
+                                : 'Patient Tokens for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
+                            style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                          ),
+                          const SizedBox(height: 2),
+                          const Text(
+                            'Live list of patient tokens · Tap any card to view full patient & doctor details',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                if (vm.todayTokens.isEmpty)
+                  _emptyState('No patient tokens booked for this date yet. When a patient books a token, it will appear here in real-time with full details.')
+                else
+                  ...vm.todayTokens.map((token) => _patientTokenCard(token)),
+              ] else ...[
+                Text(
+                  DateUtils.isSameDay(_selectedDate, DateTime.now())
+                      ? 'Today’s doctor queues'
+                      : 'Doctor queues for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
+                  style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+                ),
+                const SizedBox(height: 10),
+                if (vm.errorMessage.value.isNotEmpty && vm.todayQueues.isEmpty)
+                  _emptyState(vm.errorMessage.value)
+                else if (vm.todayQueues.isEmpty)
+                  _emptyState('No doctors yet. Add doctors from the Doctors tab to start managing queues.')
+                else
+                  ...vm.todayQueues.map((queue) {
+                    final doctorId = _id(queue['id'] ?? queue['doctor_id']);
                   final doctor = _value(queue, ['name', 'doctor_name'], fallback: 'Doctor');
                   final qualification = _value(queue, ['qualification'], fallback: '');
                   final serving = _value(queue, ['now_serving'], fallback: 'none');
@@ -427,6 +805,7 @@ class _QueueControlViewState extends State<QueueControlView> {
                     ),
                   );
                 }),
+              ],
             ],
           );
         }),

@@ -20,6 +20,7 @@ class ManagerViewModel extends GetxController {
   final patientsServed = 0.obs;
   final avgConsultationMins = 0.obs;
   final todayQueues = <Map<String, dynamic>>[].obs;
+  final todayTokens = <Map<String, dynamic>>[].obs;
   final isDashboardLoading = false.obs;
 
   int _dashboardInt(dynamic value) =>
@@ -48,6 +49,16 @@ class ManagerViewModel extends GetxController {
           );
         } else {
           todayQueues.clear();
+        }
+        final tokensData = raw['tokens'];
+        if (tokensData is List) {
+          todayTokens.assignAll(
+            tokensData.whereType<Map>().map(
+              (item) => Map<String, dynamic>.from(item),
+            ),
+          );
+        } else {
+          todayTokens.clear();
         }
         errorMessage.value = '';
       } else {
