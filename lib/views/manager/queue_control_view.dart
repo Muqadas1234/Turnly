@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:intl/intl.dart';
 
 import '../../services/manager_api.dart';
 import '../../utils/app_colors.dart';
@@ -21,14 +22,16 @@ class _QueueControlViewState extends State<QueueControlView> {
   late final ManagerViewModel vm;
   final RxSet<int> _busy = <int>{}.obs;
   Timer? _pollTimer;
+  DateTime _selectedDate = DateTime.now();
+  String get _dateString => DateFormat('yyyy-MM-dd').format(_selectedDate);
 
   @override
   void initState() {
     super.initState();
     vm = Get.find<ManagerViewModel>();
-    vm.fetchDashboard();
+    vm.fetchDashboard(date: _dateString);
     _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) {
-      if (mounted && _busy.isEmpty) vm.fetchDashboard();
+      if (mounted && _busy.isEmpty) vm.fetchDashboard(date: _dateString);
     });
   }
 
@@ -36,6 +39,32 @@ class _QueueControlViewState extends State<QueueControlView> {
   void dispose() {
     _pollTimer?.cancel();
     super.dispose();
+  }
+
+  void _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime.now().subtract(const Duration(days: 30)),
+      lastDate: DateTime.now().add(const Duration(days: 30)),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: AppColors.tealPrimary,
+              onPrimary: Colors.white,
+              surface: AppColors.surface,
+              onSurface: AppColors.textPrimary,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+      vm.fetchDashboard(date: _dateString);
+    }
   }
 
   int? _id(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
@@ -61,20 +90,20 @@ class _QueueControlViewState extends State<QueueControlView> {
   Future<void> _callNext(int doctorId) async {
     _busy.add(doctorId);
     try {
-      _toast(await ManagerApi.callNext(doctorId));
+      _toast(await ManagerApi.callNext(doctorId, date: _dateString));
     } finally {
       _busy.remove(doctorId);
-      await vm.fetchDashboard();
+      await vm.fetchDashboard(date: _dateString);
     }
   }
 
   Future<void> _completeCurrent(int doctorId) async {
     _busy.add(doctorId);
     try {
-      _toast(await ManagerApi.completeCurrent(doctorId), ok: 'Consultation marked as completed');
+      _toast(await ManagerApi.completeCurrent(doctorId, date: _dateString), ok: 'Consultation marked as completed');
     } finally {
       _busy.remove(doctorId);
-      await vm.fetchDashboard();
+      await vm.fetchDashboard(date: _dateString);
     }
   }
 
@@ -86,8 +115,8 @@ class _QueueControlViewState extends State<QueueControlView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _DoctorQueueSheet(doctorId: doctorId, doctorName: doctorName),
-    ).whenComplete(vm.fetchDashboard);
+      builder: (_) => _DoctorQueueSheet(doctorId: doctorId, doctorName: doctorName, date: _dateString),
+    ).whenComplete(() => vm.fetchDashboard(date: _dateString));
   }
 
   @override
@@ -102,13 +131,13 @@ class _QueueControlViewState extends State<QueueControlView> {
         actions: [
           IconButton(
             tooltip: 'Refresh queue',
-            onPressed: vm.fetchDashboard,
+            onPressed: () => vm.fetchDashboard(date: _dateString),
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: vm.fetchDashboard,
+        onRefresh: () => vm.fetchDashboard(date: _dateString),
         child: Obx(() {
           if (vm.isDashboardLoading.value && vm.todayQueues.isEmpty) {
             return const Center(child: CircularProgressIndicator());
@@ -117,15 +146,51 @@ class _QueueControlViewState extends State<QueueControlView> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.calendar_today_rounded, size: 18, color: AppColors.tealPrimary),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('Queue Date', style: TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                          Text(
+                            DateUtils.isSameDay(_selectedDate, DateTime.now())
+                                ? 'Today (${DateFormat('d MMM yyyy').format(_selectedDate)})'
+                                : DateFormat('EEEE, d MMMM yyyy').format(_selectedDate),
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.textPrimary),
+                          ),
+                        ],
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: _pickDate,
+                      icon: const Icon(Icons.edit_calendar_rounded, size: 16, color: AppColors.tealPrimary),
+                      label: const Text('Change date', style: TextStyle(color: AppColors.tealPrimary, fontSize: 12)),
+                    ),
+                  ],
+                ),
+              ),
               _summaryCard(
                 'Patients waiting',
                 vm.inQueueNow.value.toString(),
                 Icons.groups_outlined,
               ),
               const SizedBox(height: 18),
-              const Text(
-                'Today’s doctor queues',
-                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              Text(
+                DateUtils.isSameDay(_selectedDate, DateTime.now())
+                    ? 'Today’s doctor queues'
+                    : 'Doctor queues for ${DateFormat('d MMM yyyy').format(_selectedDate)}',
+                style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
               ),
               const SizedBox(height: 10),
               if (vm.errorMessage.value.isNotEmpty && vm.todayQueues.isEmpty)
@@ -333,7 +398,8 @@ class _QueueControlViewState extends State<QueueControlView> {
 class _DoctorQueueSheet extends StatefulWidget {
   final int doctorId;
   final String doctorName;
-  const _DoctorQueueSheet({required this.doctorId, required this.doctorName});
+  final String? date;
+  const _DoctorQueueSheet({required this.doctorId, required this.doctorName, this.date});
 
   @override
   State<_DoctorQueueSheet> createState() => _DoctorQueueSheetState();
@@ -359,7 +425,7 @@ class _DoctorQueueSheetState extends State<_DoctorQueueSheet> {
       _loading = true;
       _error = '';
     });
-    final r = await ManagerApi.getQueueOverview(widget.doctorId);
+    final r = await ManagerApi.getQueueOverview(widget.doctorId, date: widget.date);
     if (!mounted) return;
     setState(() {
       _loading = false;
@@ -522,7 +588,7 @@ class _DoctorQueueSheetState extends State<_DoctorQueueSheet> {
                                   child: SizedBox(
                                     width: double.infinity,
                                     child: ElevatedButton.icon(
-                                      onPressed: _acting ? null : () => _run(() => ManagerApi.callNext(widget.doctorId)),
+                                      onPressed: _acting ? null : () => _run(() => ManagerApi.callNext(widget.doctorId, date: widget.date)),
                                       icon: const Icon(Icons.skip_next_rounded, size: 18),
                                       label: Text('Call next (#${waiting.first['token_number']})'),
                                       style: ElevatedButton.styleFrom(
@@ -535,7 +601,7 @@ class _DoctorQueueSheetState extends State<_DoctorQueueSheet> {
                                 ),
                                 ...waiting.map((t) => _tokenTile(t, [
                                       _iconBtn(Icons.play_arrow_rounded, 'Call next', AppColors.primary,
-                                          () => _run(() => ManagerApi.callNext(widget.doctorId))),
+                                          () => _run(() => ManagerApi.callNext(widget.doctorId, date: widget.date))),
                                       _iconBtn(Icons.person_off_rounded, 'Skip', AppColors.warning,
                                           () => _run(() => ManagerApi.skipToken(_tid(t)!))),
                                       _iconBtn(Icons.cancel_rounded, 'Cancel token', AppColors.error,
