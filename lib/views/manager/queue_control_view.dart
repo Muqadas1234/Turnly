@@ -1,0 +1,456 @@
+import 'package:flutter/material.dart';
+import 'package:get/get.dart';
+
+import '../../services/manager_api.dart';
+import '../../utils/app_colors.dart';
+import '../../utils/routes.dart';
+import '../../viewmodels/manager_viewmodel.dart';
+
+/// Live queue control for the hospital manager.
+/// Backend: GET /api/queue/stats (doctor list), GET /api/queue/:doctorId,
+/// POST /api/queue/:doctorId/call-next, POST /api/queue/tokens/:id/{complete|skip|recall|cancel}
+class QueueControlView extends StatefulWidget {
+  const QueueControlView({super.key});
+
+  @override
+  State<QueueControlView> createState() => _QueueControlViewState();
+}
+
+class _QueueControlViewState extends State<QueueControlView> {
+  late final ManagerViewModel vm;
+  final RxSet<int> _busy = <int>{}.obs;
+
+  @override
+  void initState() {
+    super.initState();
+    vm = Get.find<ManagerViewModel>();
+    vm.fetchDashboard();
+  }
+
+  int? _id(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
+
+  String _value(Map<String, dynamic> item, List<String> keys, {String fallback = '—'}) {
+    for (final key in keys) {
+      final value = item[key];
+      if (value != null && value.toString().trim().isNotEmpty) return value.toString();
+    }
+    return fallback;
+  }
+
+  void _toast(Map<String, dynamic> r, {String ok = 'Done'}) {
+    final success = r['success'] == true;
+    Get.snackbar(
+      success ? 'Queue updated' : 'Action failed',
+      r['message']?.toString() ?? (success ? ok : 'Please try again.'),
+      backgroundColor: success ? AppColors.successBg : AppColors.errorBg,
+      colorText: success ? AppColors.textPrimary : AppColors.error,
+    );
+  }
+
+  Future<void> _callNext(int doctorId) async {
+    _busy.add(doctorId);
+    try {
+      _toast(await ManagerApi.callNext(doctorId));
+    } finally {
+      _busy.remove(doctorId);
+      await vm.fetchDashboard();
+    }
+  }
+
+  void _openQueue(int doctorId, String doctorName) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => _DoctorQueueSheet(doctorId: doctorId, doctorName: doctorName),
+    ).whenComplete(vm.fetchDashboard);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Queue control'),
+        backgroundColor: AppColors.surface,
+        foregroundColor: AppColors.textPrimary,
+        elevation: 0,
+        actions: [
+          IconButton(
+            tooltip: 'Refresh queue',
+            onPressed: vm.fetchDashboard,
+            icon: const Icon(Icons.refresh),
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: vm.fetchDashboard,
+        child: Obx(() {
+          if (vm.isDashboardLoading.value && vm.todayQueues.isEmpty) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          return ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            children: [
+              _summaryCard(
+                'Patients waiting',
+                vm.inQueueNow.value.toString(),
+                Icons.groups_outlined,
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'Today’s doctor queues',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+              ),
+              const SizedBox(height: 10),
+              if (vm.errorMessage.value.isNotEmpty && vm.todayQueues.isEmpty)
+                _emptyState(vm.errorMessage.value)
+              else if (vm.todayQueues.isEmpty)
+                _emptyState('No doctors yet. Add doctors from the Doctors tab to start managing queues.')
+              else
+                ...vm.todayQueues.map((queue) {
+                  final doctorId = _id(queue['id'] ?? queue['doctor_id']);
+                  final doctor = _value(queue, ['name', 'doctor_name'], fallback: 'Doctor');
+                  final serving = _value(queue, ['now_serving'], fallback: 'none');
+                  final waiting = _value(queue, ['waiting'], fallback: '0');
+                  final room = _value(queue, ['room']);
+                  final dept = _value(queue, ['department_name'], fallback: '');
+                  return Card(
+                    elevation: 0,
+                    margin: const EdgeInsets.only(bottom: 10),
+                    color: AppColors.surface,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      side: const BorderSide(color: AppColors.border),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              const CircleAvatar(
+                                backgroundColor: AppColors.tealLight,
+                                child: Icon(Icons.medical_services_outlined, color: AppColors.tealPrimary),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(doctor, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      '${dept.isEmpty ? '' : '$dept · '}Room $room · Now serving ${serving == 'none' ? 'none' : '#$serving'}',
+                                      style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Column(
+                                children: [
+                                  Text(waiting,
+                                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800, color: AppColors.tealPrimary)),
+                                  const Text('waiting', style: TextStyle(fontSize: 10, color: AppColors.textSecondary)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          if (doctorId == null)
+                            const Text('Doctor id missing from server response.',
+                                style: TextStyle(fontSize: 12, color: AppColors.error))
+                          else
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Obx(() => ElevatedButton.icon(
+                                        onPressed: _busy.contains(doctorId) ? null : () => _callNext(doctorId),
+                                        icon: _busy.contains(doctorId)
+                                            ? const SizedBox(
+                                                width: 16,
+                                                height: 16,
+                                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                              )
+                                            : const Icon(Icons.skip_next_rounded, size: 20),
+                                        label: const Text('Call next'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.primary,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                        ),
+                                      )),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: () => _openQueue(doctorId, doctor),
+                                    icon: const Icon(Icons.list_alt_rounded, size: 18),
+                                    label: const Text('Manage queue'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      side: const BorderSide(color: AppColors.primary),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+            ],
+          );
+        }),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1,
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.tealPrimary,
+        unselectedItemColor: AppColors.textSecondary,
+        onTap: (index) {
+          if (index == 0) Get.offNamed(AppRoutes.managerDashboard);
+          if (index == 2) Get.offNamed(AppRoutes.doctorManagement);
+          if (index == 3) Get.offNamed(AppRoutes.profile);
+        },
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'Dashboard'),
+          BottomNavigationBarItem(icon: Icon(Icons.assignment_outlined), label: 'Queue'),
+          BottomNavigationBarItem(icon: Icon(Icons.medical_services_outlined), label: 'Doctors'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_outline), label: 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _summaryCard(String title, String value, IconData icon) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.tealPrimary, size: 28),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title, style: const TextStyle(color: AppColors.textSecondary))),
+          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyState(String message) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Text(message, textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
+        ),
+      );
+}
+
+/// Per-doctor queue: serving / waiting / skipped lists with token actions.
+class _DoctorQueueSheet extends StatefulWidget {
+  final int doctorId;
+  final String doctorName;
+  const _DoctorQueueSheet({required this.doctorId, required this.doctorName});
+
+  @override
+  State<_DoctorQueueSheet> createState() => _DoctorQueueSheetState();
+}
+
+class _DoctorQueueSheetState extends State<_DoctorQueueSheet> {
+  bool _loading = true;
+  bool _acting = false;
+  String _error = '';
+  Map<String, dynamic> _queue = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  List<Map<String, dynamic>> _list(dynamic v) =>
+      v is List ? v.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : [];
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = '';
+    });
+    final r = await ManagerApi.getQueueOverview(widget.doctorId);
+    if (!mounted) return;
+    setState(() {
+      _loading = false;
+      if (r['success'] == true && r['queue'] is Map) {
+        _queue = Map<String, dynamic>.from(r['queue'] as Map);
+      } else {
+        _error = r['message']?.toString() ?? 'Could not load this queue.';
+      }
+    });
+  }
+
+  Future<void> _run(Future<Map<String, dynamic>> Function() action) async {
+    if (_acting) return;
+    setState(() => _acting = true);
+    final r = await action();
+    Get.snackbar(
+      r['success'] == true ? 'Queue updated' : 'Action failed',
+      r['message']?.toString() ?? (r['success'] == true ? 'Done' : 'Please try again.'),
+      backgroundColor: r['success'] == true ? AppColors.successBg : AppColors.errorBg,
+      colorText: r['success'] == true ? AppColors.textPrimary : AppColors.error,
+    );
+    if (mounted) setState(() => _acting = false);
+    await _load();
+  }
+
+  int? _tid(Map<String, dynamic> t) => t['id'] is int ? t['id'] as int : int.tryParse('${t['id']}');
+
+  String _who(Map<String, dynamic> t) {
+    for (final k in ['patient_name', 'family_member_name', 'name', 'account_name']) {
+      final v = t[k];
+      if (v != null && v.toString().trim().isNotEmpty) return v.toString();
+    }
+    return 'Patient';
+  }
+
+  Widget _tokenTile(Map<String, dynamic> t, List<Widget> actions) {
+    final priority = t['priority'] == true || t['priority']?.toString() == 'true';
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 18,
+            backgroundColor: AppColors.tealLight,
+            child: Text('#${t['token_number'] ?? '?'}',
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: AppColors.tealPrimary)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(_who(t), style: const TextStyle(fontWeight: FontWeight.w600)),
+                if (priority)
+                  const Text('Priority', style: TextStyle(fontSize: 11, color: AppColors.warning)),
+              ],
+            ),
+          ),
+          ...actions,
+        ],
+      ),
+    );
+  }
+
+  Widget _iconBtn(IconData icon, String tip, Color color, VoidCallback onTap) => IconButton(
+        tooltip: tip,
+        onPressed: _acting ? null : onTap,
+        icon: Icon(icon, color: color),
+        visualDensity: VisualDensity.compact,
+      );
+
+  Widget _section(String title, List<Widget> children) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 14, bottom: 8),
+            child: Text(title, style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.textSecondary)),
+          ),
+          ...children,
+        ],
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    final serving = _queue['now_serving'] is Map ? Map<String, dynamic>.from(_queue['now_serving'] as Map) : null;
+    final waiting = _list(_queue['waiting']);
+    final skipped = _list(_queue['skipped']);
+    return DraggableScrollableSheet(
+      expand: false,
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (_, scroll) => Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        child: Column(
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(4)),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(widget.doctorName,
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                ),
+                IconButton(onPressed: _load, icon: const Icon(Icons.refresh)),
+              ],
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _error.isNotEmpty
+                      ? Center(child: Text(_error, textAlign: TextAlign.center))
+                      : ListView(
+                          controller: scroll,
+                          children: [
+                            _section('Now serving', [
+                              if (serving == null)
+                                const Text('Nobody is being served.', style: TextStyle(color: AppColors.textSecondary))
+                              else
+                                _tokenTile(serving, [
+                                  _iconBtn(Icons.check_circle_rounded, 'Mark done', AppColors.success,
+                                      () => _run(() => ManagerApi.completeToken(_tid(serving)!))),
+                                  _iconBtn(Icons.person_off_rounded, 'Skip (no-show)', AppColors.warning,
+                                      () => _run(() => ManagerApi.skipToken(_tid(serving)!))),
+                                ]),
+                            ]),
+                            _section('Waiting (${waiting.length})', [
+                              if (waiting.isEmpty)
+                                const Text('No patients waiting.', style: TextStyle(color: AppColors.textSecondary)),
+                              ...waiting.map((t) => _tokenTile(t, [
+                                    _iconBtn(Icons.person_off_rounded, 'Skip', AppColors.warning,
+                                        () => _run(() => ManagerApi.skipToken(_tid(t)!))),
+                                    _iconBtn(Icons.cancel_rounded, 'Cancel token', AppColors.error,
+                                        () => _run(() => ManagerApi.cancelToken(_tid(t)!))),
+                                  ])),
+                            ]),
+                            if (skipped.isNotEmpty)
+                              _section('Skipped (${skipped.length})', [
+                                ...skipped.map((t) => _tokenTile(t, [
+                                      _iconBtn(Icons.undo_rounded, 'Put back in queue', AppColors.primary,
+                                          () => _run(() => ManagerApi.recallToken(_tid(t)!))),
+                                      _iconBtn(Icons.cancel_rounded, 'Cancel token', AppColors.error,
+                                          () => _run(() => ManagerApi.cancelToken(_tid(t)!))),
+                                    ])),
+                              ]),
+                            const SizedBox(height: 24),
+                          ],
+                        ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
