@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -19,12 +20,22 @@ class QueueControlView extends StatefulWidget {
 class _QueueControlViewState extends State<QueueControlView> {
   late final ManagerViewModel vm;
   final RxSet<int> _busy = <int>{}.obs;
+  Timer? _pollTimer;
 
   @override
   void initState() {
     super.initState();
     vm = Get.find<ManagerViewModel>();
     vm.fetchDashboard();
+    _pollTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted && _busy.isEmpty) vm.fetchDashboard();
+    });
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   int? _id(dynamic v) => v is int ? v : int.tryParse(v?.toString() ?? '');
@@ -51,6 +62,16 @@ class _QueueControlViewState extends State<QueueControlView> {
     _busy.add(doctorId);
     try {
       _toast(await ManagerApi.callNext(doctorId));
+    } finally {
+      _busy.remove(doctorId);
+      await vm.fetchDashboard();
+    }
+  }
+
+  Future<void> _completeCurrent(int doctorId) async {
+    _busy.add(doctorId);
+    try {
+      _toast(await ManagerApi.completeCurrent(doctorId), ok: 'Consultation marked as completed');
     } finally {
       _busy.remove(doctorId);
       await vm.fetchDashboard();
@@ -116,9 +137,13 @@ class _QueueControlViewState extends State<QueueControlView> {
                   final doctorId = _id(queue['id'] ?? queue['doctor_id']);
                   final doctor = _value(queue, ['name', 'doctor_name'], fallback: 'Doctor');
                   final serving = _value(queue, ['now_serving'], fallback: 'none');
+                  final servingName = _value(queue, ['now_serving_patient_name'], fallback: '');
                   final waiting = _value(queue, ['waiting'], fallback: '0');
                   final room = _value(queue, ['room']);
                   final dept = _value(queue, ['department_name'], fallback: '');
+                  final isServing = serving != 'none' && serving.isNotEmpty && serving != 'null';
+                  final waitingCount = int.tryParse(waiting) ?? 0;
+
                   return Card(
                     elevation: 0,
                     margin: const EdgeInsets.only(bottom: 10),
@@ -146,7 +171,7 @@ class _QueueControlViewState extends State<QueueControlView> {
                                     Text(doctor, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
                                     const SizedBox(height: 2),
                                     Text(
-                                      '${dept.isEmpty ? '' : '$dept · '}Room $room · Now serving ${serving == 'none' ? 'none' : '#$serving'}',
+                                      '${dept.isEmpty ? '' : '$dept · '}Room $room · ${isServing ? 'Now serving #$serving' : 'No active patient'}',
                                       style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
                                     ),
                                   ],
@@ -161,6 +186,29 @@ class _QueueControlViewState extends State<QueueControlView> {
                               ),
                             ],
                           ),
+                          if (isServing) ...[
+                            const SizedBox(height: 10),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: AppColors.successBg,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.record_voice_over_rounded, size: 16, color: AppColors.success),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Serving: Token #$serving${servingName.isNotEmpty ? ' · $servingName' : ''}',
+                                      style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13, color: AppColors.success),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 12),
                           if (doctorId == null)
                             const Text('Doctor id missing from server response.',
@@ -168,36 +216,59 @@ class _QueueControlViewState extends State<QueueControlView> {
                           else
                             Row(
                               children: [
+                                if (isServing) ...[
+                                  Expanded(
+                                    child: Obx(() => ElevatedButton.icon(
+                                          onPressed: _busy.contains(doctorId) ? null : () => _completeCurrent(doctorId),
+                                          icon: _busy.contains(doctorId)
+                                              ? const SizedBox(
+                                                  width: 14,
+                                                  height: 14,
+                                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                                                )
+                                              : const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                          label: const Text('Complete'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.success,
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                        )),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
                                 Expanded(
                                   child: Obx(() => ElevatedButton.icon(
-                                        onPressed: _busy.contains(doctorId) ? null : () => _callNext(doctorId),
+                                        onPressed: (_busy.contains(doctorId) || waitingCount == 0)
+                                            ? null
+                                            : () => _callNext(doctorId),
                                         icon: _busy.contains(doctorId)
                                             ? const SizedBox(
-                                                width: 16,
-                                                height: 16,
+                                                width: 14,
+                                                height: 14,
                                                 child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                               )
-                                            : const Icon(Icons.skip_next_rounded, size: 20),
-                                        label: const Text('Call next'),
+                                            : const Icon(Icons.skip_next_rounded, size: 18),
+                                        label: Text(isServing ? 'Next (#$waitingCount)' : 'Call next'),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.primary,
                                           foregroundColor: Colors.white,
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
                                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                         ),
                                       )),
                                 ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: OutlinedButton.icon(
-                                    onPressed: () => _openQueue(doctorId, doctor),
-                                    icon: const Icon(Icons.list_alt_rounded, size: 18),
-                                    label: const Text('Manage queue'),
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.primary,
-                                      side: const BorderSide(color: AppColors.primary),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                    ),
+                                const SizedBox(width: 8),
+                                OutlinedButton(
+                                  onPressed: () => _openQueue(doctorId, doctor),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(color: AppColors.primary),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                   ),
+                                  child: const Icon(Icons.list_alt_rounded, size: 18),
                                 ),
                               ],
                             ),
@@ -417,23 +488,60 @@ class _DoctorQueueSheetState extends State<_DoctorQueueSheet> {
                             _section('Now serving', [
                               if (serving == null)
                                 const Text('Nobody is being served.', style: TextStyle(color: AppColors.textSecondary))
-                              else
+                              else ...[
                                 _tokenTile(serving, [
-                                  _iconBtn(Icons.check_circle_rounded, 'Mark done', AppColors.success,
+                                  _iconBtn(Icons.check_circle_rounded, 'Mark done (Stop)', AppColors.success,
                                       () => _run(() => ManagerApi.completeToken(_tid(serving)!))),
                                   _iconBtn(Icons.person_off_rounded, 'Skip (no-show)', AppColors.warning,
                                       () => _run(() => ManagerApi.skipToken(_tid(serving)!))),
                                 ]),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4, bottom: 8),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _acting ? null : () => _run(() => ManagerApi.completeToken(_tid(serving)!)),
+                                      icon: const Icon(Icons.check_circle_outline_rounded, size: 18),
+                                      label: const Text('Complete Consultation (Stop)'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.success,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ]),
                             _section('Waiting (${waiting.length})', [
                               if (waiting.isEmpty)
-                                const Text('No patients waiting.', style: TextStyle(color: AppColors.textSecondary)),
-                              ...waiting.map((t) => _tokenTile(t, [
-                                    _iconBtn(Icons.person_off_rounded, 'Skip', AppColors.warning,
-                                        () => _run(() => ManagerApi.skipToken(_tid(t)!))),
-                                    _iconBtn(Icons.cancel_rounded, 'Cancel token', AppColors.error,
-                                        () => _run(() => ManagerApi.cancelToken(_tid(t)!))),
-                                  ])),
+                                const Text('No patients waiting.', style: TextStyle(color: AppColors.textSecondary))
+                              else ...[
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 8),
+                                  child: SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _acting ? null : () => _run(() => ManagerApi.callNext(widget.doctorId)),
+                                      icon: const Icon(Icons.skip_next_rounded, size: 18),
+                                      label: Text('Call next (#${waiting.first['token_number']})'),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.primary,
+                                        foregroundColor: Colors.white,
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                ...waiting.map((t) => _tokenTile(t, [
+                                      _iconBtn(Icons.play_arrow_rounded, 'Call next', AppColors.primary,
+                                          () => _run(() => ManagerApi.callNext(widget.doctorId))),
+                                      _iconBtn(Icons.person_off_rounded, 'Skip', AppColors.warning,
+                                          () => _run(() => ManagerApi.skipToken(_tid(t)!))),
+                                      _iconBtn(Icons.cancel_rounded, 'Cancel token', AppColors.error,
+                                          () => _run(() => ManagerApi.cancelToken(_tid(t)!))),
+                                    ])),
+                              ],
                             ]),
                             if (skipped.isNotEmpty)
                               _section('Skipped (${skipped.length})', [

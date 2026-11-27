@@ -29,8 +29,8 @@ class _MyTokenViewState extends State<MyTokenView> {
     _vm = Get.find<PatientViewModel>();
     _snapshot = widget.token ?? _vm.activeToken.value;
     _vm.fetchActiveToken();
-    // Fallback until the live WebSocket client exists.
-    _poll = Timer.periodic(const Duration(seconds: 15), (_) => _tick());
+    // Live polling for rapid real-time updates while this view is active
+    _poll = Timer.periodic(const Duration(seconds: 4), (_) => _tick());
   }
 
   @override
@@ -115,6 +115,66 @@ class _MyTokenViewState extends State<MyTokenView> {
                 _metrics(t),
                 const SizedBox(height: 16),
                 _stepper(t),
+                if (t.phase == TokenPhase.serving) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE8F5E9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF0F9D58).withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.record_voice_over_rounded, color: Color(0xFF0F9D58), size: 24),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('It’s Your Turn!',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF0F9D58))),
+                              SizedBox(height: 2),
+                              Text('You are currently being served. Please proceed to the doctor’s room.',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                if (t.phase == TokenPhase.done) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.successBg,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
+                    ),
+                    child: const Row(
+                      children: [
+                        Icon(Icons.check_circle_rounded, color: AppColors.success, size: 24),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Consultation Completed',
+                                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.success)),
+                              SizedBox(height: 2),
+                              Text('Your consultation has ended. Thank you for using Turnly!',
+                                  style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if (t.canCancel) ...[
                   const SizedBox(height: 24),
                   CustomButton(

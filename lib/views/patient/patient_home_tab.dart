@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../../utils/app_assets.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../utils/app_colors.dart';
 import '../../utils/routes.dart';
+import '../../utils/token_display.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../../viewmodels/patient_viewmodel.dart';
 import 'hospital_detail_view.dart';
@@ -20,9 +22,20 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
   final PatientViewModel _patientVm = Get.put(PatientViewModel());
   final AuthViewModel _authVm = Get.find<AuthViewModel>();
   final TextEditingController _searchController = TextEditingController();
+  Timer? _pollTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _patientVm.fetchActiveToken();
+    _pollTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (mounted) _patientVm.fetchActiveToken();
+    });
+  }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -302,20 +315,33 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
 
   // Active Token Banner Card
   Widget _buildActiveTokenCard(Map<String, dynamic> token) {
-    final tokenNumber = int.tryParse(token['token_number']?.toString() ?? '0') ?? 0;
-    final doctorName = token['doctor_name']?.toString() ?? 'Doctor';
-    final aheadCount = int.tryParse(token['ahead_count']?.toString() ?? '0') ?? 0;
-    final waitMin = int.tryParse(token['estimated_wait_minutes']?.toString() ?? '20') ?? 20;
+    final info = TokenInfo(token);
+    final isServing = info.phase == TokenPhase.serving;
+    final tokenNumber = info.number;
+    final doctorName = info.doctor;
+    final room = token['room']?.toString() ?? '';
+    final aheadCount = info.ahead ?? 0;
+    final waitMin = info.waitMinutes ?? 15;
 
     return InkWell(
       onTap: () => Get.to(() => MyTokenView(token: token)),
       borderRadius: BorderRadius.circular(16),
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
         width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.adminPrimary,
+          color: isServing ? const Color(0xFF0F9D58) : AppColors.adminPrimary,
           borderRadius: BorderRadius.circular(16),
+          boxShadow: isServing
+              ? [
+                  BoxShadow(
+                    color: const Color(0xFF0F9D58).withValues(alpha: 0.35),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           children: [
@@ -323,35 +349,62 @@ class _PatientHomeTabState extends State<PatientHomeTab> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'YOUR ACTIVE TOKEN',
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white70,
-                      letterSpacing: 0.8,
-                    ),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: isServing ? 0.25 : 0.15),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isServing) ...[
+                              const Icon(Icons.record_voice_over_rounded, size: 12, color: Colors.white),
+                              const SizedBox(width: 4),
+                            ],
+                            Text(
+                              isServing ? 'IT’S YOUR TURN · NOW SERVING' : 'YOUR ACTIVE TOKEN · WAITING',
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: 0.8,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   Text(
                     'Token #$tokenNumber · Dr. $doctorName',
                     style: const TextStyle(
-                      fontSize: 15,
+                      fontSize: 16,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    '$aheadCount patients ahead · ~$waitMin min wait',
-                    style: const TextStyle(fontSize: 12, color: Colors.white70),
+                    isServing
+                        ? (room.isNotEmpty ? 'Please proceed to Room $room now!' : 'Please proceed to consultation room now!')
+                        : '$aheadCount patients ahead · ~$waitMin min wait',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: isServing ? FontWeight.w600 : FontWeight.normal,
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
                   ),
                 ],
               ),
             ),
+            const SizedBox(width: 8),
             Container(
-              width: 36,
-              height: 36,
+              width: 38,
+              height: 38,
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,

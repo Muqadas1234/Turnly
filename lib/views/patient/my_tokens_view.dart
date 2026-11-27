@@ -26,8 +26,8 @@ class _MyTokensViewState extends State<MyTokensView> {
     super.initState();
     _vm = Get.find<PatientViewModel>();
     _refresh();
-    // Fallback until the live WebSocket client exists.
-    _poll = Timer.periodic(const Duration(seconds: 20), (_) => _vm.fetchActiveToken());
+    // Live polling for rapid real-time updates
+    _poll = Timer.periodic(const Duration(seconds: 5), (_) => _refresh());
   }
 
   @override

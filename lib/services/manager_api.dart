@@ -55,6 +55,9 @@ class ManagerApi {
   static Future<Map<String, dynamic>> callNext(int doctorId, {String? date}) =>
       _post('/queue/$doctorId/call-next', date == null ? null : {'date': date});
 
+  static Future<Map<String, dynamic>> completeCurrent(int doctorId, {String? date}) =>
+      _post('/queue/$doctorId/complete-current', date == null ? null : {'date': date});
+
   static Future<Map<String, dynamic>> completeToken(int tokenId) => _post('/queue/tokens/$tokenId/complete');
   static Future<Map<String, dynamic>> skipToken(int tokenId) => _post('/queue/tokens/$tokenId/skip');
   static Future<Map<String, dynamic>> recallToken(int tokenId) => _post('/queue/tokens/$tokenId/recall');
